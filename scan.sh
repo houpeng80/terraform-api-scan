@@ -17,9 +17,9 @@ runApiScan() {
 
     curl ${url} >releaseVersion.json
     # # 使用正则提取需要的区域信息,实际有需要可以提取省市等接口返回的其他信息
-    grep -E '"tag_name"\s*:\s*(.*?),' releaseVersion.json >latest_tag.info
+    grep -E '"tag_name"\s*:\s*(.*?),' releaseVersion.json >latest_tmp.info
 
-    res=$(cat latest_tag.info) # eg: "tag_name":     "v1.26.1",
+    res=$(cat latest_tmp.info) # eg: "tag_name":     "v1.26.1",
     res=${res##*:}             #      "v1.26.1",
     res=${res#*\"}             #删除空格以及第一个引号： v1.26.1",
 
@@ -30,6 +30,7 @@ runApiScan() {
     #  res=${res:1:lenth-2} # v1.26.1
     echo ${res}
     version=${res}
+    echo ${res} >latest_version.info
     fileName=${res}".zip"
     echo ${fileName}
 
@@ -57,6 +58,7 @@ runApiScan() {
     #
 
     cp ../../main.go ./main.go
+    echo ${outputDir} >../../output_dir.info
     subPackPath="/huaweicloud"
     go run main.go -basePath=${res}"/" -outputDir=${outputDir} -version=${version}
 }
