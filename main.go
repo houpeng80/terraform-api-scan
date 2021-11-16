@@ -427,9 +427,16 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 
 		}
 		//2. client 直接定义在方法里 TODO
-
 	}
+
+	//使用utils中tags相关请求的，特殊处理url
+	parseTagUriInFunc(funcSrc, cloudUriArray)
+
 	return cloudUriArray
+}
+
+func parseTagUriInFunc(funcSrc string, cloudUriArray []CloudUri) {
+
 }
 
 func parseUriFromSdk(sdkFilePath string, sdkFunctionName string) (r CloudUri) {
@@ -621,6 +628,10 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri) string {
 
 		if !oneUrlParam.serviceCatalog.WithOutProjectID {
 			resourceBase = resourceBase + "{project_id}/"
+		}
+
+		if oneUrlParam.serviceCatalog.ResourceBase != "" {
+			resourceBase = resourceBase + oneUrlParam.serviceCatalog.ResourceBase + "/"
 		}
 
 		isSameWithPre := isSameWithPre(cloudUri, i)
