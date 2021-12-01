@@ -27,7 +27,7 @@ runApiScan() {
     echo ${res}
     echo ${lenth}
     res=${res%\"*}
-    #  res=${res:1:lenth-2} # v1.26.1
+
     echo ${res}
     version=${res}
     echo ${res} >latest_version.info

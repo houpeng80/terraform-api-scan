@@ -250,6 +250,7 @@ func isDeprecatedFile(filePath string) bool {
 		"data_source_huaweicloud_vbs_backup_v2",
 		"resource_huaweicloud_blockstorage_volume_v2",
 		"resource_huaweicloud_compute_floatingip_v2",
+		"resource_huaweicloud_compute_floatingip_associate_v2",
 		"resource_huaweicloud_compute_secgroup_v2",
 		"resource_huaweicloud_csbs_backup_policy_v1",
 		"resource_huaweicloud_csbs_backup_v1",
@@ -259,6 +260,7 @@ func isDeprecatedFile(filePath string) bool {
 		"resource_huaweicloud_fw_policy_v2",
 		"resource_huaweicloud_fw_rule_v2",
 		"resource_huaweicloud_networking_floatingip_v2",
+		"resource_huaweicloud_networking_floatingip_associate_v2",
 		"resource_huaweicloud_networking_network_v2",
 		"resource_huaweicloud_networking_router_interface_v2",
 		"resource_huaweicloud_networking_router_route_v2",
@@ -267,7 +269,8 @@ func isDeprecatedFile(filePath string) bool {
 		"resource_huaweicloud_vbs_backup_policy_v2",
 		"data_source_huaweicloud_cts_tracker_v1",
 		"resource_huaweicloud_vbs_backup_v2",
-		"resource_huaweicloud_cts_tracker_v1",
+		"resource_huaweicloud_rts_stack_v1",
+		"resource_huaweicloud_rts_software_config_v1",
 	}
 	for _, v := range deprecateFiles {
 		if strings.LastIndex(filePath, v) > -1 {
@@ -389,17 +392,17 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 	for alias, sdkFilePath := range sdkPackages {
 		// 根据import的别名，匹配使用到的地方
 		//1. client在前面定义的 eg: refinedAntiddos, err := antiddos.ListStatus(antiddosClient, listStatusOpts)
-		reg := regexp.MustCompile(fmt.Sprintf(`(%s)\.(\w*)\((\w*)`, alias))
-		allSubMatchIndex := reg.FindAllStringSubmatchIndex(funcSrc, -1)
-		for i := 0; i < len(allSubMatchIndex); i++ {
+		reg := regexp.MustCompile(fmt.Sprintf(`(%s)\.(\w*)\((\w*)(.*)`, alias))
+		allSubMatch := reg.FindAllStringSubmatch(funcSrc, -1)
+		for i := 0; i < len(allSubMatch); i++ {
 			//0:全部字符串，1：第一个submatch ...
 			//methodInvokeIndexStart, methodInvokeIndexEnd := allSubMatchIndex[i][0], allSubMatchIndex[i][1]
-			sdkFunctionNameIndexStart, sdkFunctionNameIndexEnd := allSubMatchIndex[i][4], allSubMatchIndex[i][5]
-			clientBeenUsedIndexStart, clientBeenUsedIndexEnd := allSubMatchIndex[i][6], allSubMatchIndex[i][7]
+			//sdkFunctionNameIndexStart, sdkFunctionNameIndexEnd := allSubMatchIndex[i][4], allSubMatchIndex[i][5]
+			//clientBeenUsedIndexStart, clientBeenUsedIndexEnd := allSubMatchIndex[i][6], allSubMatchIndex[i][7]
 
 			//methodInvoke := funcStr[methodInvokeIndexStart:methodInvokeIndexEnd]
-			sdkFunctionName := funcSrc[sdkFunctionNameIndexStart:sdkFunctionNameIndexEnd]
-			clientBeenUsed := funcSrc[clientBeenUsedIndexStart:clientBeenUsedIndexEnd]
+			sdkFunctionName := allSubMatch[i][2]
+			clientBeenUsed := allSubMatch[i][3]
 			log.Println("TO find:", curResourceFuncDecl.Name.Name, alias, clientBeenUsed, sdkFunctionName)
 
 			cloudUri := parseUriFromSdk(sdkFilePath, sdkFunctionName)
@@ -420,6 +423,11 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 					cloudUri.serviceCatalog = serviceCategory
 				}
 
+				//特殊处理tags类的调用
+				newCloudUri := replaceTagUri(allSubMatch[i], cloudUri.url)
+				if newCloudUri != "" {
+					cloudUri.url = newCloudUri
+				}
 				cloudUriArray = append(cloudUriArray, cloudUri)
 			} else {
 				log.Println("parseUriFromSdk.return empty", sdkFunctionName, sdkFilePath)
@@ -430,13 +438,67 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 	}
 
 	//使用utils中tags相关请求的，特殊处理url
-	parseTagUriInFunc(funcSrc, cloudUriArray)
-
+	tagCloudUriArray := parseTagUriInFunc(funcSrc, curResourceFuncDecl, resourceFileBytes, funcDecls, fset)
+	cloudUriArray = append(cloudUriArray, tagCloudUriArray...)
 	return cloudUriArray
 }
 
-func parseTagUriInFunc(funcSrc string, cloudUriArray []CloudUri) {
+func replaceTagUri(allSubMatch []string, url string) string {
+	newUrl := ""
+	if allSubMatch[1] == "tags" && len(allSubMatch) > 4 {
+		log.Println("replace tag:", allSubMatch[4])
+		reg := regexp.MustCompile(`,\s"(.*)"`)
+		subMatch := reg.FindAllStringSubmatch(allSubMatch[4], 1)
+		if len(subMatch) > 0 {
+			serviceTag := subMatch[0][1]
+			newUrl = strings.Replace(url, "{resourceType}", serviceTag, -1)
+		}
+	}
 
+	return newUrl
+}
+
+func parseTagUriInFunc(funcSrc string, curResourceFuncDecl *ast.FuncDecl, resourceFileBytes []byte,
+	funcDecls []*ast.FuncDecl, fset *token.FileSet) []CloudUri {
+	cloudUriArray := []CloudUri{}
+
+	// utils.UpdateResourceTags(computeClient, d, "cloudservers", serverId)
+	reg := regexp.MustCompile(`utils\.UpdateResourceTags\((\w*),\s(\w*),\s"(.*)",\s(.*)\)`)
+	allSubMatch := reg.FindAllStringSubmatch(funcSrc, -1)
+	if len(allSubMatch) > 0 {
+		clientBeenUsed := allSubMatch[0][1]
+		serviceType := allSubMatch[0][3]
+		log.Println("parse tag:", clientBeenUsed, serviceType, funcSrc)
+		tagUri := []CloudUri{
+			{url: serviceType + "/{id}/tags/action", httpMethod: "POST", operationId: "batchUpdate"},
+		}
+
+		for i := 0; i < len(tagUri); i++ {
+
+			cloudUri := tagUri[i]
+
+			if cloudUri.url != "" {
+				//2. 根据这里使用到的client ，向上找最近的一个 serviceClient定义,并根据它找到 resourceType,version等信息
+				clientName, err := parseClientDecl(string(clientBeenUsed), funcSrc, curResourceFuncDecl, resourceFileBytes, funcDecls, fset)
+				if err != nil {
+					log.Println("found none client declare,so skip:", clientBeenUsed, funcSrc)
+					cloudUri.resourceType = "unknow:" + clientBeenUsed
+				} else {
+					//在config.go中获得 catgegoryName
+					categoryName := getCategoryFromConfig(clientName)
+					log.Println("categoryName:", categoryName, " find by=", clientName)
+
+					serviceCategory := parseEndPointByClient(categoryName)
+					cloudUri.resourceType = serviceCategory.Name
+					cloudUri.serviceCatalog = serviceCategory
+				}
+
+				cloudUriArray = append(cloudUriArray, cloudUri)
+			}
+
+		}
+	}
+	return cloudUriArray
 }
 
 func parseUriFromSdk(sdkFilePath string, sdkFunctionName string) (r CloudUri) {
@@ -678,13 +740,11 @@ paths:%s
 func waitingUpdateResource(resourceName string) bool {
 	deprecateFiles := []string{
 		"data_source_huaweicloud_cdm_flavors_v1",
-		"data_source_huaweicloud_dis_partition_v2",
 		"data_source_huaweicloud_gaussdb_mysql_flavors",
 		"data_source_huaweicloud_obs_bucket_object",
 		"data_source_huaweicloud_rds_flavors_v3",
 		"resource_huaweicloud_cdm_cluster_v1",
 		"resource_huaweicloud_cloudtable_cluster_v2",
-		"resource_huaweicloud_dis_stream_v2",
 		"resource_huaweicloud_dws_cluster",
 		"resource_huaweicloud_ges_graph_v1",
 		"resource_huaweicloud_mls_instance",
@@ -836,6 +896,9 @@ func parseUriFromUriFile(filePath string) {
 						if ok || isString {
 							paramValues = append(paramValues, v)
 						} else {
+							if strings.HasSuffix(key, ".ProjectID") {
+								key = "project_id"
+							}
 							paramValues = append(paramValues, fmt.Sprintf(`{%s}`, key))
 						}
 
