@@ -503,10 +503,10 @@ func parseTagUriInFunc(funcSrc string, curResourceFuncDecl *ast.FuncDecl, resour
 
 func parseUriFromSdk(sdkFilePath string, sdkFunctionName string) (r CloudUri) {
 	//TODO 从 vendor/github.com/terraform-providers/golangsdk/openstack/deh/v1/hosts/requests.go
-	sdkFilePath2 := "./vendor/" + sdkFilePath + "/requests.go"
+	sdkFileDir := "./vendor/" + sdkFilePath + "/"
 
-	cUri := getUriFromRequestFile(sdkFilePath2, sdkFunctionName, true)
-	fmt.Println("mmmm", cUri.url, cUri.httpMethod, sdkFunctionName, sdkFilePath2)
+	cUri := getUriFromRequestFile(sdkFileDir, sdkFunctionName, true)
+	fmt.Println("mmmm", cUri.url, cUri.httpMethod, sdkFunctionName, sdkFileDir)
 	r.url = cUri.url
 	r.httpMethod = cUri.httpMethod
 	r.operationId = sdkFunctionName
@@ -719,7 +719,7 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri) string {
 	fmt.Println("tags.length3:", len(tags))
 
 	if waitingUpdateResource(resourceName) {
-		description = "404.This resource is waiting to be upgraded, so there is method output."
+		description = "404.This resource is waiting to be upgraded, so there is none method output."
 		log.Println(description, resourceName)
 	}
 
@@ -948,27 +948,42 @@ func getUriFromUriFile(filePath string, funcName string, isParsefile bool) strin
 	return ""
 }
 
-func getUriFromRequestFile(filePath string, funcName string, isParsefile bool) CloudUri {
-	v, ok := urlSupportsInRequestFile[filePath+"."+funcName]
+func getUriFromRequestFile(sdkFileDir string, funcName string, isParsefile bool) CloudUri {
+	v, ok := urlSupportsInRequestFile[sdkFileDir+"."+funcName]
 	if ok {
 		return v
 	}
 	if isParsefile {
-		parseUriFromRequestFile(filePath)
-		return getUriFromRequestFile(filePath, funcName, false)
+		parseUriFromRequestFile(sdkFileDir)
+		return getUriFromRequestFile(sdkFileDir, funcName, false)
 	}
 	return CloudUri{}
 }
 
-func parseUriFromRequestFile(filePath string) {
+func parseUriFromRequestFile(sdkFileDir string) {
 	set := token.NewFileSet()
-	f, err := parser.ParseFile(set, filePath, nil, 0)
-	if err != nil {
-		log.Println("Failed to parse file:", filePath, err)
+	requestFileNames := []string{"requests.go", "request.go"}
+	var requestFilePath string
+
+	for _, v := range requestFileNames {
+		if filePathExists(sdkFileDir + v) {
+			requestFilePath = sdkFileDir + v
+			break
+		}
+	}
+
+	if requestFilePath == "" {
+		log.Println("[ERROR] cant find the requests files in ", sdkFileDir)
 		return
 	}
 
-	resourceFilebytes, err := ioutil.ReadFile(filePath)
+	f, err := parser.ParseFile(set, requestFilePath, nil, 0)
+	if err != nil {
+		log.Println("Failed to parse file:", requestFilePath, err)
+		return
+	}
+
+	resourceFilebytes, err := ioutil.ReadFile(requestFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -977,19 +992,17 @@ func parseUriFromRequestFile(filePath string) {
 	funcNotDirectUseURLs := []*ast.FuncDecl{}
 	urlSupportsInCurrentFile := []string{}
 
-	refixPath := filePath[:len(filePath)-len("requests.go")]
-
 	var uriFilePath string
 	urlsFileNames := []string{"urls.go", "url.go", "utils.go"}
 	for _, v := range urlsFileNames {
-		if filePathExists(refixPath + v) {
-			uriFilePath = refixPath + v
+		if filePathExists(sdkFileDir + v) {
+			uriFilePath = sdkFileDir + v
 			break
 		}
 	}
 
 	if uriFilePath == "" {
-		log.Println("[ERROR] cant find the url files", refixPath)
+		log.Println("[ERROR] cant find the url files", sdkFileDir)
 		return
 	}
 
@@ -1033,7 +1046,7 @@ func parseUriFromRequestFile(filePath string) {
 					cloudUri := new(CloudUri)
 					cloudUri.url = uri
 					cloudUri.httpMethod = mapToStandardHttpMethod(httpMethod)
-					urlSupportsInRequestFile[filePath+"."+funcName] = *cloudUri
+					urlSupportsInRequestFile[sdkFileDir+"."+funcName] = *cloudUri
 					urlSupportsInCurrentFile = append(urlSupportsInCurrentFile, funcName)
 				}
 			} else if len(submatch2) > 0 {
@@ -1050,7 +1063,7 @@ func parseUriFromRequestFile(filePath string) {
 						cloudUri := new(CloudUri)
 						cloudUri.url = uri
 						cloudUri.httpMethod = mapToStandardHttpMethod(httpMethod)
-						urlSupportsInRequestFile[filePath+"."+funcName] = *cloudUri
+						urlSupportsInRequestFile[sdkFileDir+"."+funcName] = *cloudUri
 						urlSupportsInCurrentFile = append(urlSupportsInCurrentFile, funcName)
 					} else {
 						log.Println("[ERROR]failed find URL decl in request.go", fn.Name.Name, urlFunc)
@@ -1072,7 +1085,7 @@ func parseUriFromRequestFile(filePath string) {
 					cloudUri := new(CloudUri)
 					cloudUri.url = uri
 					cloudUri.httpMethod = httpMethod
-					urlSupportsInRequestFile[filePath+"."+funcName] = *cloudUri
+					urlSupportsInRequestFile[sdkFileDir+"."+funcName] = *cloudUri
 					urlSupportsInCurrentFile = append(urlSupportsInCurrentFile, funcName)
 				}
 			} else if len(submatch4) > 0 {
@@ -1089,7 +1102,7 @@ func parseUriFromRequestFile(filePath string) {
 						cloudUri := new(CloudUri)
 						cloudUri.url = uri
 						cloudUri.httpMethod = httpMethod
-						urlSupportsInRequestFile[filePath+"."+funcName] = *cloudUri
+						urlSupportsInRequestFile[sdkFileDir+"."+funcName] = *cloudUri
 						urlSupportsInCurrentFile = append(urlSupportsInCurrentFile, funcName)
 					} else {
 						log.Println("[ERROR]failed find URL decl in request.go", fn.Name.Name, urlFunc)
@@ -1108,7 +1121,7 @@ func parseUriFromRequestFile(filePath string) {
 	}
 
 	//处理第一次没有匹配到的
-	parseRequestFuncNotDirect(set, filePath, resourceFilebytes, funcNotDirectUseURLs, urlSupportsInCurrentFile)
+	parseRequestFuncNotDirect(set, sdkFileDir, resourceFilebytes, funcNotDirectUseURLs, urlSupportsInCurrentFile)
 }
 
 //reg1 := regexp.MustCompile(`\.(Head|Get|Post|Put|Patch|Delete|DeleteWithBody|DeleteWithResponse|DeleteWithBodyResp)\((\w*)\(`)
@@ -1137,7 +1150,7 @@ func mapToStandardHttpMethod(srcHttpMethod string) string {
 	}
 }
 
-func parseRequestFuncNotDirect(set *token.FileSet, filePath string, resourceFilebytes []byte, funcNotDirectUseURLs []*ast.FuncDecl, urlSupportsInCurrentFile []string) {
+func parseRequestFuncNotDirect(set *token.FileSet, sdkFileDir string, resourceFilebytes []byte, funcNotDirectUseURLs []*ast.FuncDecl, urlSupportsInCurrentFile []string) {
 	regStr := fmt.Sprintf(`(%s)\(`, strings.Join(urlSupportsInCurrentFile, "|"))
 
 	reg := regexp.MustCompile(regStr)
@@ -1153,12 +1166,12 @@ func parseRequestFuncNotDirect(set *token.FileSet, filePath string, resourceFile
 			for i := 0; i < len(submatch); i++ {
 				actualFuncName := submatch[i][1]
 
-				v, ok := urlSupportsInRequestFile[filePath+"."+actualFuncName]
+				v, ok := urlSupportsInRequestFile[sdkFileDir+"."+actualFuncName]
 				if ok {
 					cloudUri := new(CloudUri)
 					cloudUri.url = v.url
 					cloudUri.httpMethod = v.httpMethod
-					urlSupportsInRequestFile[filePath+"."+funcName] = *cloudUri
+					urlSupportsInRequestFile[sdkFileDir+"."+funcName] = *cloudUri
 				}
 
 			}
