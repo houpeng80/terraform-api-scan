@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -74,6 +75,25 @@ func main() {
 		log.Println("scan path failed:", err2)
 	}
 
+	//将固定的文件替换到指定目录
+	copy(outputDir, version, "data_source_huaweicloud_csms_secret_version.yaml")
+
+}
+
+func copy(outputDir, version, src string) error {
+	input, err := ioutil.ReadFile("../../config/static/" + src)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	input = bytes.Replace(input, []byte("v1.34.1"), []byte(version), 1)
+
+	err = ioutil.WriteFile(outputDir+src, input, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 //将抽取出来的单独方法类写入调用的类中，这里是列举
@@ -208,7 +228,10 @@ func searchPackage2(subPackage string, publicFuncs []string) {
 					strings.LastIndex(filePath, "data_source_huaweicloud_") > -1) {
 				packageName := f.Name.Name
 
-				resourceName := filePath[strings.LastIndex(filePath, "/")+1 : len(filePath)-3]
+				resourceName := filePath[strings.LastIndex(filePath, "/")+1 : len(filePath)-3] //获得文件名字
+				//去除版本号
+				re3, _ := regexp.Compile(`_v\d+$`)
+				resourceName = re3.ReplaceAllString(resourceName, "")
 				fmt.Println("file:", resourceName, ":", packageName, ":", f.Package)
 				//拿到文件所有信息
 				//组装成yaml
