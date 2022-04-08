@@ -1,0 +1,61 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_gaussdb_redis_instance
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: gaussdb-nosql
+  - name: unknow:client
+paths:
+  /v3/{project_id}/instances/{id}/tags/action:
+    post:
+      tag: gaussdb-nosql
+      operationId: Create
+  /v3/{project_id}/instances/{id}/tags:
+    get:
+      tag: gaussdb-nosql
+      operationId: Get
+  /v3/{project_id}/instances/{instanceID}/enlarge-node:
+    post:
+      tag: gaussdb-nosql
+      operationId: EnlargeNode
+  /v3/{project_id}/instances/{instanceID}/extend-volume:
+    post:
+      tag: gaussdb-nosql
+      operationId: ExtendVolume
+  /v3/{project_id}/instances/{instanceID}/name:
+    put:
+      tag: gaussdb-nosql
+      operationId: UpdateName
+  /v3/{project_id}/instances/{instanceID}/password:
+    put:
+      tag: gaussdb-nosql
+      operationId: UpdatePass
+  /v3/{project_id}/instances/{instanceID}/reduce-node:
+    post:
+      tag: gaussdb-nosql
+      operationId: ReduceNode
+  //{project_id}/instances/{instanceID}/resize:
+    put:
+      tag: unknow:client
+      operationId: Resize
+  /v3/{project_id}/instances/{instanceID}/security-group:
+    put:
+      tag: gaussdb-nosql
+      operationId: UpdateSg
+  /v3/{project_id}/instances/{instanceID}:
+    delete:
+      tag: gaussdb-nosql
+      operationId: Delete
+  /v3/{project_id}/instances:
+    get:
+      tag: gaussdb-nosql
+      operationId: GetInstanceByID
+    get:
+      tag: unknow:client
+      operationId: GetInstanceByID
+    post:
+      tag: gaussdb-nosql
+      operationId: Create

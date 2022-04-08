@@ -1,0 +1,21 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_cloudtable_cluster
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: cloudtable
+paths:
+  /v2/{project_id}/clusters/{clusterId}:
+    delete:
+      tag: cloudtable
+      operationId: Delete
+    get:
+      tag: cloudtable
+      operationId: Get
+  /v2/{project_id}/clusters:
+    post:
+      tag: cloudtable
+      operationId: Create

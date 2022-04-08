@@ -1,0 +1,14 @@
+info:
+  version: v1.35.0
+  title: data_source_huaweicloud_iec_port
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: iecs
+paths:
+  /v1/ports:
+    get:
+      tag: iecs
+      operationId: List

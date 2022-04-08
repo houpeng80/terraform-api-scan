@@ -1,0 +1,14 @@
+info:
+  version: v1.35.0
+  title: data_source_huaweicloud_availability_zones
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: ecs
+paths:
+  /v2.1/{project_id}/os-availability-zone:
+    get:
+      tag: ecs
+      operationId: List

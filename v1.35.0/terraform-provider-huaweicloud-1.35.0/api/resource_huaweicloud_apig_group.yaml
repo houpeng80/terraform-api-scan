@@ -1,0 +1,35 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_apig_group
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: apig
+paths:
+  /v2/{project_id}/apigw/instances/{instanceId}/api-groups/{groupId}:
+    delete:
+      tag: apig
+      operationId: Delete
+    get:
+      tag: apig
+      operationId: Get
+    put:
+      tag: apig
+      operationId: Update
+  /v2/{project_id}/apigw/instances/{instanceId}/api-groups:
+    post:
+      tag: apig
+      operationId: Create
+  /v2/{project_id}/apigw/instances/{instanceId}/{path}/{id}:
+    delete:
+      tag: apig
+      operationId: DeleteVariable
+  /v2/{project_id}/apigw/instances/{instanceId}/{path}:
+    get:
+      tag: apig
+      operationId: ListVariables
+    post:
+      tag: apig
+      operationId: CreateVariable

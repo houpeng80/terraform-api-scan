@@ -1,0 +1,14 @@
+info:
+  version: v1.35.0
+  title: data_source_huaweicloud_gaussdb_mysql_dedicated_resource
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: gaussdb
+paths:
+  /mysql/v3/{project_id}/dedicated-resources:
+    get:
+      tag: gaussdb
+      operationId: ListDeh

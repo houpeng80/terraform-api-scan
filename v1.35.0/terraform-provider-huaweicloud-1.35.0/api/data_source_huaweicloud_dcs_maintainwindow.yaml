@@ -1,0 +1,14 @@
+info:
+  version: v1.35.0
+  title: data_source_huaweicloud_dcs_maintainwindow
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: dcs
+paths:
+  /v2/{project_id}/{resourcePath)}//+client.ProjectID//{-1}:
+    get:
+      tag: dcs
+      operationId: Get

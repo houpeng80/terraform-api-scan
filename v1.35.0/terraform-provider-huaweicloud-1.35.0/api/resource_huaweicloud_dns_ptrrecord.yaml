@@ -1,0 +1,29 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_dns_ptrrecord
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: dns
+paths:
+  /v2/DNS-ptr_record/{id}/tags/action:
+    POST:
+      tag: dns
+      operationId: batchUpdate
+  /v2/DNS-ptr_record/{id}/tags:
+    get:
+      tag: dns
+      operationId: Get
+  /v2/reverse/floatingips/region+:+floatingip_id:
+    patch:
+      tag: dns
+      operationId: Create
+  /v2/reverse/floatingips/{id}:
+    get:
+      tag: dns
+      operationId: Get
+    patch:
+      tag: dns
+      operationId: Delete

@@ -1,0 +1,29 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_dds_instance
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: dds
+paths:
+  /v3/{project_id}/instances/{id}/tags/action:
+    post:
+      tag: dds
+      operationId: Create
+  /v3/{project_id}/instances/{id}/tags:
+    get:
+      tag: dds
+      operationId: Get
+  /v3/{project_id}/instances/{serverID}:
+    delete:
+      tag: dds
+      operationId: Delete
+  /v3/{project_id}/instances:
+    get:
+      tag: dds
+      operationId: List
+    post:
+      tag: dds
+      operationId: Create

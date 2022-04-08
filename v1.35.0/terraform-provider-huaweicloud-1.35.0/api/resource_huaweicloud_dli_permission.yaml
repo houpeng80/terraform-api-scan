@@ -1,0 +1,34 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_dli_permission
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: dli
+paths:
+  /v1.0/{project_id}/authorization/privileges:
+    get:
+      tag: dli
+      operationId: ListDataPermission
+  /v1.0/{project_id}/databases/{databaseName}/tables/{tableName}/users:
+    get:
+      tag: dli
+      operationId: ListTablePermission
+  /v1.0/{project_id}/databases/{databaseName}/users:
+    get:
+      tag: dli
+      operationId: ListDatabasePermission
+  /v1.0/{project_id}/queues/user-authorization:
+    put:
+      tag: dli
+      operationId: GrantQueuePermission
+  /v1.0/{project_id}/queues/{queueName}/users:
+    get:
+      tag: dli
+      operationId: ListQueuePermission
+  /v1.0/{project_id}/user-authorization:
+    put:
+      tag: dli
+      operationId: GrantDataPermission

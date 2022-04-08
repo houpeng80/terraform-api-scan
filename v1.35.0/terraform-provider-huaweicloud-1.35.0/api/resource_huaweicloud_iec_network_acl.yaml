@@ -1,0 +1,24 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_iec_network_acl
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: iecs
+paths:
+  /v1/firewalls/{firewallId}:
+    delete:
+      tag: iecs
+      operationId: Delete
+    get:
+      tag: iecs
+      operationId: Get
+    put:
+      tag: iecs
+      operationId: Update
+  /v1/firewalls:
+    post:
+      tag: iecs
+      operationId: Create

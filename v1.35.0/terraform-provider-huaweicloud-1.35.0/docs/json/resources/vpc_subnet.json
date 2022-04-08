@@ -1,0 +1,102 @@
+{
+  "provider_schemas": {
+    "huaweicloud/huaweicloud": {
+      "resource_schemas": {
+        "huaweicloud_vpc_subnet": {
+          "block": {
+            "attributes": {
+              "availability_zone": {
+                "type": "string",
+                "optional": true,
+                "computed": true,
+                "forcenew": true
+              },
+              "cidr": {
+                "type": "string",
+                "required": true,
+                "forcenew": true
+              },
+              "dhcp_enable": {
+                "type": "bool",
+                "optional": true,
+                "default": true
+              },
+              "dns_list": {
+                "type": [
+                  "list",
+                  "string"
+                ],
+                "optional": true,
+                "computed": true
+              },
+              "gateway_ip": {
+                "type": "string",
+                "required": true,
+                "forcenew": true
+              },
+              "id": {
+                "type": "string",
+                "computed": true
+              },
+              "ipv6_cidr": {
+                "type": "string",
+                "computed": true
+              },
+              "ipv6_enable": {
+                "type": "bool",
+                "optional": true
+              },
+              "ipv6_gateway": {
+                "type": "string",
+                "computed": true
+              },
+              "ipv6_subnet_id": {
+                "type": "string",
+                "computed": true
+              },
+              "name": {
+                "type": "string",
+                "required": true
+              },
+              "primary_dns": {
+                "type": "string",
+                "optional": true,
+                "computed": true
+              },
+              "region": {
+                "type": "string",
+                "computed": true
+              },
+              "secondary_dns": {
+                "type": "string",
+                "optional": true,
+                "computed": true
+              },
+              "subnet_id": {
+                "type": "string",
+                "computed": true
+              },
+              "tags": {
+                "type": [
+                  "map",
+                  "string"
+                ],
+                "optional": true
+              },
+              "vpc_id": {
+                "type": "string",
+                "required": true,
+                "forcenew": true
+              }
+            }
+          },
+          "product": {
+            "catalog": "Network",
+            "name": "Virtual Private Cloud",
+            "short": "VPC"
+          }
+        }
+      }
+    }
+  }
+}

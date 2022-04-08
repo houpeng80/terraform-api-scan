@@ -1,0 +1,77 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_gaussdb_cassandra_instance
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: gaussdb-nosql
+paths:
+  /v3/{project_id}/configurations/{configId}/apply:
+    put:
+      tag: gaussdb-nosql
+      operationId: Apply
+  /v3/{project_id}/configurations/{configId}:
+    get:
+      tag: gaussdb-nosql
+      operationId: Get
+  /v3/{project_id}/dedicated-resources:
+    get:
+      tag: gaussdb-nosql
+      operationId: ListDeh
+  /v3/{project_id}/instances/{id}/backups/policy:
+    put:
+      tag: gaussdb-nosql
+      operationId: Update
+  /v3/{project_id}/instances/{id}/tags/action:
+    post:
+      tag: gaussdb-nosql
+      operationId: Create
+  /v3/{project_id}/instances/{id}/tags:
+    get:
+      tag: gaussdb-nosql
+      operationId: Get
+  /v3/{project_id}/instances/{instanceId}/configurations:
+    get:
+      tag: gaussdb-nosql
+      operationId: GetInstanceConfig
+  /v3/{project_id}/instances/{instanceID}/enlarge-node:
+    post:
+      tag: gaussdb-nosql
+      operationId: EnlargeNode
+  /v3/{project_id}/instances/{instanceID}/extend-volume:
+    post:
+      tag: gaussdb-nosql
+      operationId: ExtendVolume
+  /v3/{project_id}/instances/{instanceID}/name:
+    put:
+      tag: gaussdb-nosql
+      operationId: UpdateName
+  /v3/{project_id}/instances/{instanceID}/password:
+    put:
+      tag: gaussdb-nosql
+      operationId: UpdatePass
+  /v3/{project_id}/instances/{instanceID}/reduce-node:
+    post:
+      tag: gaussdb-nosql
+      operationId: ReduceNode
+  /v3/{project_id}/instances/{instanceID}/resize:
+    put:
+      tag: gaussdb-nosql
+      operationId: Resize
+  /v3/{project_id}/instances/{instanceID}/security-group:
+    put:
+      tag: gaussdb-nosql
+      operationId: UpdateSg
+  /v3/{project_id}/instances/{instanceID}:
+    delete:
+      tag: gaussdb-nosql
+      operationId: Delete
+  /v3/{project_id}/instances:
+    get:
+      tag: gaussdb-nosql
+      operationId: GetInstanceByID
+    post:
+      tag: gaussdb-nosql
+      operationId: Create

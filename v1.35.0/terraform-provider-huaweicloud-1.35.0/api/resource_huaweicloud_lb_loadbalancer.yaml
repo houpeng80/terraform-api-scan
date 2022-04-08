@@ -1,0 +1,40 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_lb_loadbalancer
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: elb
+  - name: vpc
+paths:
+  /v2/{project_id}/elb/loadbalancers/{id}:
+    delete:
+      tag: elb
+      operationId: Delete
+    get:
+      tag: elb
+      operationId: Get
+    put:
+      tag: elb
+      operationId: Update
+  /v2/{project_id}/elb/loadbalancers:
+    post:
+      tag: elb
+      operationId: Create
+  /v2.0/loadbalancers/{id}/tags/action:
+    post:
+      tag: elb
+      operationId: Create
+  /v2.0/loadbalancers/{id}/tags:
+    get:
+      tag: elb
+      operationId: Get
+  /v1/ports/{id}:
+    get:
+      tag: vpc
+      operationId: Get
+    put:
+      tag: vpc
+      operationId: Update

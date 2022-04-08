@@ -1,0 +1,32 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_gaussdb_opengauss_instance
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: gaussdb-opengauss
+paths:
+  /v3/{project_id}/instances/{id}/backups/policy:
+    put:
+      tag: gaussdb-opengauss
+      operationId: Update
+  /v3/{project_id}/instances/{instanceID}/{updata}:
+    post:
+      tag: gaussdb-opengauss
+      operationId: UpdateCluster
+    put:
+      tag: gaussdb-opengauss
+      operationId: Rename
+  /v3/{project_id}/instances/{instanceID}:
+    delete:
+      tag: gaussdb-opengauss
+      operationId: Delete
+  /v3/{project_id}/instances:
+    get:
+      tag: gaussdb-opengauss
+      operationId: GetInstanceByID
+    post:
+      tag: gaussdb-opengauss
+      operationId: Create

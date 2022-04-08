@@ -1,0 +1,28 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_ces_alarmrule
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: ces
+paths:
+  /V1.0/{project_id}/alarms/{id}/action:
+    put:
+      tag: ces
+      operationId: Enable
+  /V1.0/{project_id}/alarms/{id}:
+    delete:
+      tag: ces
+      operationId: Delete
+    get:
+      tag: ces
+      operationId: Get
+    put:
+      tag: ces
+      operationId: Update
+  /V1.0/{project_id}/alarms:
+    post:
+      tag: ces
+      operationId: Create

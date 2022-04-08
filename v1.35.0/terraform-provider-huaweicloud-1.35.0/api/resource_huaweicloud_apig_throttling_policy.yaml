@@ -1,0 +1,41 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_apig_throttling_policy
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: apig
+paths:
+  /v2/{project_id}/apigw/instances/{instanceId}/throttles/{policyId}/throttle-specials/{strategyId}:
+    delete:
+      tag: apig
+      operationId: DeleteSpecThrottle
+    put:
+      tag: apig
+      operationId: UpdateSpecThrottle
+  /v2/{project_id}/apigw/instances/{instanceId}/throttles/{policyId}/throttle-specials:
+    get:
+      tag: apig
+      operationId: ListSpecThrottles
+    post:
+      tag: apig
+      operationId: CreateSpecThrottle
+  /v2/{project_id}/apigw/instances/{instanceId}/throttles/{policyId}:
+    delete:
+      tag: apig
+      operationId: Delete
+    get:
+      tag: apig
+      operationId: Get
+    put:
+      tag: apig
+      operationId: Update
+  /v2/{project_id}/apigw/instances/{instanceId}/throttles:
+    get:
+      tag: apig
+      operationId: List
+    post:
+      tag: apig
+      operationId: Create

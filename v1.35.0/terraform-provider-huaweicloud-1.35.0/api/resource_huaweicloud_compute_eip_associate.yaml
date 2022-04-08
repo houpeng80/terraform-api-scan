@@ -1,0 +1,35 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_compute_eip_associate
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: ecs
+  - name: vpc
+paths:
+  /v1/{project_id}/cloudservers/{serverID}:
+    get:
+      tag: ecs
+      operationId: Get
+  /v2.0/{project_id}/bandwidths/{ID}/insert:
+    post:
+      tag: vpc
+      operationId: Insert
+  /v2.0/{project_id}/bandwidths/{ID}/remove:
+    post:
+      tag: vpc
+      operationId: Remove
+  /v1/{project_id}/bandwidths/{id}:
+    get:
+      tag: vpc
+      operationId: Get
+  /v1/{project_id}/publicips/{id}:
+    put:
+      tag: vpc
+      operationId: Update
+  /v1/{project_id}/publicips:
+    get:
+      tag: vpc
+      operationId: List

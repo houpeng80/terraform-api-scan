@@ -1,0 +1,21 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_cdm_cluster
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: cdm
+paths:
+  /v1.1/{project_id}/clusters/{clusterId}:
+    delete:
+      tag: cdm
+      operationId: Delete
+    get:
+      tag: cdm
+      operationId: Get
+  /v1.1/{project_id}/clusters:
+    post:
+      tag: cdm
+      operationId: Create

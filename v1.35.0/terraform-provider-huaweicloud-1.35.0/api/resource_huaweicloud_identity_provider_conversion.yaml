@@ -1,0 +1,28 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_identity_provider_conversion
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: iam
+paths:
+  //v3/OS-FEDERATION/identity_providers/{id}:
+    get:
+      tag: iam
+      operationId: Get
+  //v3/OS-FEDERATION/mappings/{id}:
+    get:
+      tag: iam
+      operationId: Get
+    patch:
+      tag: iam
+      operationId: Update
+    put:
+      tag: iam
+      operationId: Create
+  //v3/OS-FEDERATION/mappings:
+    get:
+      tag: iam
+      operationId: List

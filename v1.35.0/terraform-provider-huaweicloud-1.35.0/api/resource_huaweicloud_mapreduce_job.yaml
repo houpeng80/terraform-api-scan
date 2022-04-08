@@ -1,0 +1,22 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_mapreduce_job
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: mrs
+paths:
+  /v2/{project_id}/clusters/{clusterId}/job-executions/batch-delete:
+    post:
+      tag: mrs
+      operationId: Delete
+  /v2/{project_id}/clusters/{clusterId}/job-executions/{jobId}:
+    get:
+      tag: mrs
+      operationId: Get
+  /v2/{project_id}/clusters/{clusterId}/job-executions:
+    post:
+      tag: mrs
+      operationId: Create

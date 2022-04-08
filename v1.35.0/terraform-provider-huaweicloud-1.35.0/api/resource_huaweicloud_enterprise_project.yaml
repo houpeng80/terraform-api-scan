@@ -1,0 +1,25 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_enterprise_project
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: eps
+paths:
+  /v1.0/enterprise-projects/{id}/action:
+    post:
+      tag: eps
+      operationId: Action
+  /v1.0/enterprise-projects/{id}:
+    get:
+      tag: eps
+      operationId: Get
+    put:
+      tag: eps
+      operationId: Update
+  /v1.0/enterprise-projects:
+    post:
+      tag: eps
+      operationId: Create

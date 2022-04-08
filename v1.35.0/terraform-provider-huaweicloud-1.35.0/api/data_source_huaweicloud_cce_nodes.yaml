@@ -1,0 +1,19 @@
+info:
+  version: v1.35.0
+  title: data_source_huaweicloud_cce_nodes
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: ecs
+  - name: cce
+paths:
+  /v1/{project_id}/cloudservers/{id}/tags:
+    get:
+      tag: ecs
+      operationId: Get
+  /api/v3/projects/{project_id}/clusters/{clusterid}/nodes:
+    get:
+      tag: cce
+      operationId: List

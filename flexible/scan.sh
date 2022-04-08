@@ -51,14 +51,11 @@ runApiScan() {
     mkdir ${outputDir}
     mkdir ./flexibleengine/config
 
-    cp ./vendor/github.com/huaweicloud/terraform-provider-huaweicloud/huaweicloud/config/endpoints.go ./flexibleengine/config/endpoints.go
-    awk -v line=$(awk '/var allServiceCatalog/{print NR}' ./vendor/github.com/huaweicloud/terraform-provider-huaweicloud/huaweicloud/config/endpoints.go) 'BEGIN{print "package config\n\n var AllServiceCatalog = map[string]ServiceCatalog{"}{if(NR>line){print $0}}' ./vendor/github.com/huaweicloud/terraform-provider-huaweicloud/huaweicloud/config/endpoints.go >./flexibleengine/config/endpoints2.go
-    #
-
     cp ../../main.go ./main.go
     echo ${outputDir} >../../output_dir.info
     subPackPath="/flexibleengine"
-    go run main.go -basePath=${res}"/" -outputDir=${outputDir} -version=${version}
+    providerSchemaPath="../../schema.json"
+    go run main.go -basePath=${res}"/" -outputDir=${outputDir} -version=${version} -providerSchemaPath=${providerSchemaPath}
 }
 
 runApiScan

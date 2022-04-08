@@ -14,8 +14,6 @@ import (
 	"sort"
 	"strings"
 	"testing"
-
-	"github.com/terraform-providers/terraform-provider-flexibleengine/flexibleengine/config"
 )
 
 var basePath string
@@ -32,6 +30,8 @@ var version string
 
 var sdkFilePreFix string
 
+var providerSchemaPath string
+
 func init() {
 	flag.StringVar(&basePath, "basePath", "./", "base Path")
 	flag.StringVar(&outputDir, "outputDir", "./api/", "api yaml file output Dir")
@@ -39,6 +39,8 @@ func init() {
 	flag.StringVar(&filterFilePath, "filterFilePath", "", "Specifies the terraform resource been scan")
 	flag.StringVar(&sdkFilePreFix, "sdkFilePreFix", "github.com/chnsz/golangsdk/openstack/",
 		"Specifies the path of sdk")
+	flag.StringVar(&providerSchemaPath, "providerSchemaPath", "schema.json",
+		"CMD: terraform providers schema -json >./schema.json")
 }
 func main() {
 
@@ -65,7 +67,7 @@ func main() {
 		if fInfo.IsDir() {
 			fmt.Println(path, fInfo.Size(), fInfo.Name())
 
-			searchPackage2(path, publicFuncArray)
+			searchPackage2(path, publicFuncArray, rsNames, dsNames)
 		}
 
 		return nil
@@ -208,6 +210,16 @@ func searchPackage2(subPackage string, publicFuncs []string) {
 				packageName := f.Name.Name
 
 				resourceName := filePath[strings.LastIndex(filePath, "/")+1 : len(filePath)-3]
+	//去除版本号
+				re3, _ := regexp.Compile(`_v\d+$`)
+				resourceName = re3.ReplaceAllString(resourceName, "")
+
+				// 根据provider提供的资源，过滤资源
+				if ok := isExportResource(resourceName, rsNames, dsNames); !ok {
+					log.Println("skip file which not export:", filePath)
+					skipFiles = append(skipFiles, filePath)
+					continue
+				}
 				fmt.Println("file:", resourceName, ":", packageName, ":", f.Package)
 				//拿到文件所有信息
 				//组装成yaml
@@ -562,7 +574,7 @@ func parseConfigFile(filePath string) {
 			reg := regexp.MustCompile(`NewServiceClient\("(.*)"`)
 			submatch := reg.FindAllStringSubmatch(funcSrc, -1)
 			if len(submatch) < 1 {
-				log.Println("parse config error,searching regxp:", reg, "in func:", funcSrc[:120])
+				log.Println("parse config error,searching regxp:", reg, "in func:", funcSrc[:60])
 				clientDeclInConfig[funcName] = funcName
 			} else {
 				for i := 0; i < len(submatch); i++ {
@@ -1182,6 +1194,69 @@ func filePathExists(path string) bool {
 	}
 	return true
 }
+
+func parseSchemaInfo(schemaJsonPath string) (rsNames []string, dsNames []string, err error) {
+	input, err := ioutil.ReadFile(schemaJsonPath)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var mapResult map[string]interface{}
+
+	if err = json.Unmarshal(input, &mapResult); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	sc := mapResult["provider_schemas"].(map[string]interface{})
+	for _, v := range sc {
+		m := v.(map[string]interface{})
+		rs := m["resource_schemas"].(map[string]interface{})
+		ds := m["data_source_schemas"].(map[string]interface{})
+
+		for name := range rs {
+			rsNames = append(rsNames, name)
+		}
+		for name := range ds {
+			dsNames = append(dsNames, name)
+		}
+	}
+
+	ioutil.WriteFile("resource_name.txt", []byte(strings.Join(rsNames, "\n")), 0644)
+	ioutil.WriteFile("data_source_name.txt", []byte(strings.Join(dsNames, "\n")), 0644)
+	return
+}
+
+func isExportResource(resourceFileName string, rsNames []string, dsNames []string) bool {
+	re3, _ := regexp.Compile(`^_v\d+$`)
+
+	if strings.HasPrefix(resourceFileName, "resource_") {
+		if len(rsNames) < 1 {
+			return true
+		}
+		resourceFileName = strings.TrimPrefix(resourceFileName, "resource_")
+		for _, v := range rsNames {
+			remaindStr := strings.TrimPrefix(v, resourceFileName)
+			if remaindStr == "" || re3.MatchString(remaindStr) {
+				return true
+			}
+		}
+	}
+
+	if strings.HasPrefix(resourceFileName, "data_source_") {
+		if len(dsNames) < 1 {
+			return true
+		}
+		resourceFileName = strings.TrimPrefix(resourceFileName, "data_source_")
+		for _, v := range dsNames {
+			remaindStr := strings.TrimPrefix(v, resourceFileName)
+			if remaindStr == "" || re3.MatchString(remaindStr) {
+				return true
+			}
+		}
+	}
+	return false
 
 var FlexServiceCatalog = map[string]config.ServiceCatalog{
 	// catalog for global service

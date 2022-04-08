@@ -1,0 +1,32 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_lb_listener
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: elb
+paths:
+  /v2/{project_id}/elb/listeners/{id}:
+    delete:
+      tag: elb
+      operationId: Delete
+    get:
+      tag: elb
+      operationId: Get
+    put:
+      tag: elb
+      operationId: Update
+  /v2/{project_id}/elb/listeners:
+    post:
+      tag: elb
+      operationId: Create
+  /v2.0/listeners/{id}/tags/action:
+    post:
+      tag: elb
+      operationId: Create
+  /v2.0/listeners/{id}/tags:
+    get:
+      tag: elb
+      operationId: Get

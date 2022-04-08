@@ -1,0 +1,21 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_iec_keypair
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: iecs
+paths:
+  /v1/os-keypairs/{KeyPairName}:
+    delete:
+      tag: iecs
+      operationId: Delete
+    get:
+      tag: iecs
+      operationId: Get
+  /v1/os-keypairs:
+    post:
+      tag: iecs
+      operationId: Create

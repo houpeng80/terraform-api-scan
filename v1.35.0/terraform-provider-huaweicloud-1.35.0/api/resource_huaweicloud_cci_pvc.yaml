@@ -1,0 +1,21 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_cci_pvc
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: cci
+paths:
+  /api/v1/namespaces/{ns}/extended-persistentvolumeclaims:
+    get:
+      tag: cci
+      operationId: List
+    post:
+      tag: cci
+      operationId: Create
+  /api/v1/namespaces/{ns}/persistentvolumeclaims/{name}:
+    delete:
+      tag: cci
+      operationId: Delete

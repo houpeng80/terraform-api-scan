@@ -1,0 +1,39 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_apig_application
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: apig
+paths:
+  /v2/{project_id}/apigw/instances/{instanceId}/apps/secret/{appId}:
+    put:
+      tag: apig
+      operationId: ResetAppSecret
+  /v2/{project_id}/apigw/instances/{instanceId}/apps/{appId}/app-codes/{codeId}:
+    delete:
+      tag: apig
+      operationId: RemoveAppCode
+  /v2/{project_id}/apigw/instances/{instanceId}/apps/{appId}/app-codes:
+    get:
+      tag: apig
+      operationId: ListAppCode
+    post:
+      tag: apig
+      operationId: CreateAppCode
+  /v2/{project_id}/apigw/instances/{instanceId}/apps/{appId}:
+    delete:
+      tag: apig
+      operationId: Delete
+    get:
+      tag: apig
+      operationId: Get
+    put:
+      tag: apig
+      operationId: Update
+  /v2/{project_id}/apigw/instances/{instanceId}/apps:
+    post:
+      tag: apig
+      operationId: Create

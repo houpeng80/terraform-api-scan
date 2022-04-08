@@ -1,0 +1,61 @@
+{
+  "provider_schemas": {
+    "huaweicloud/huaweicloud": {
+      "resource_schemas": {
+        "huaweicloud_nat_snat_rule": {
+          "block": {
+            "attributes": {
+              "cidr": {
+                "type": "string",
+                "optional": true,
+                "forcenew": true
+              },
+              "floating_ip_address": {
+                "type": "string",
+                "computed": true
+              },
+              "floating_ip_id": {
+                "type": "string",
+                "required": true,
+                "forcenew": true
+              },
+              "id": {
+                "type": "string",
+                "computed": true
+              },
+              "nat_gateway_id": {
+                "type": "string",
+                "required": true,
+                "forcenew": true
+              },
+              "region": {
+                "type": "string",
+                "computed": true
+              },
+              "source_type": {
+                "type": "number",
+                "optional": true,
+                "forcenew": true
+              },
+              "status": {
+                "type": "string",
+                "computed": true
+              },
+              "subnet_id": {
+                "type": "string",
+                "optional": true,
+                "computed": true,
+                "forcenew": true
+              }
+            }
+          },
+          "product": {
+            "catalog": "Network",
+            "name": "NAT Gateway",
+            "short": "NAT"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_vpc_route_table
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: vpc
+paths:
+  /v1/{project_id}/routetables/{id}/action:
+    post:
+      tag: vpc
+      operationId: Action
+  /v1/{project_id}/routetables/{id}:
+    delete:
+      tag: vpc
+      operationId: Delete
+    get:
+      tag: vpc
+      operationId: Get
+    put:
+      tag: vpc
+      operationId: Update
+  /v1/{project_id}/routetables:
+    post:
+      tag: vpc
+      operationId: Create

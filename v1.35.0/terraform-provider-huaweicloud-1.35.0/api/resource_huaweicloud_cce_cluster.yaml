@@ -1,0 +1,37 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_cce_cluster
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: aom
+  - name: cce
+paths:
+  /svcstg/icmgr/v1/{project_id}/agents:
+    post:
+      tag: aom
+      operationId: Create
+  /api/v3/projects/{project_id}/clusters/{id}/clustercert:
+    get:
+      tag: cce
+      operationId: GetCert
+  /api/v3/projects/{project_id}/clusters/{id}/operation/{action}:
+    post:
+      tag: cce
+      operationId: Operation
+  /api/v3/projects/{project_id}/clusters/{id}:
+    delete:
+      tag: cce
+      operationId: DeleteWithOpts
+    get:
+      tag: cce
+      operationId: Get
+    put:
+      tag: cce
+      operationId: Update
+  /api/v3/projects/{project_id}/clusters:
+    post:
+      tag: cce
+      operationId: Create

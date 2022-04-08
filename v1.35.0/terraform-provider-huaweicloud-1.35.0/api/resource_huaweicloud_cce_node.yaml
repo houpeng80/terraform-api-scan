@@ -1,0 +1,59 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_cce_node
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: ecs
+  - name: cce
+  - name: unknow:cceClient
+  - name: unknow:client
+  - name: vpc
+paths:
+  /v1/{project_id}/cloudservers/{id}/tags/action:
+    POST:
+      tag: ecs
+      operationId: batchUpdate
+  /v1/{project_id}/cloudservers/{id}/tags:
+    get:
+      tag: ecs
+      operationId: Get
+  /api/v3/projects/{project_id}/clusters/{clusterid}/nodes/operation/remove:
+    put:
+      tag: cce
+      operationId: Remove
+  /api/v3/projects/{project_id}/clusters/{clusterid}/nodes/{nodeid}:
+    delete:
+      tag: cce
+      operationId: Delete
+    get:
+      tag: cce
+      operationId: Get
+    put:
+      tag: cce
+      operationId: Update
+  /api/v3/projects/{project_id}/clusters/{clusterid}/nodes:
+    post:
+      tag: cce
+      operationId: Create
+  /api/v3/projects/{project_id}/clusters/{id}:
+    get:
+      tag: cce
+      operationId: Get
+  //{project_id}/jobs/{jobid}:
+    get:
+      tag: unknow:cceClient
+      operationId: GetJobDetails
+    get:
+      tag: unknow:client
+      operationId: GetJobDetails
+  /v2.1/{project_id}/servers/{id}:
+    get:
+      tag: ecs
+      operationId: Get
+  /v1/{project_id}/publicips:
+    get:
+      tag: vpc
+      operationId: List

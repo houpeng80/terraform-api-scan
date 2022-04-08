@@ -1,0 +1,24 @@
+info:
+  version: v1.35.0
+  title: resource_huaweicloud_rds_configuration
+  description: 
+schemes:
+  - https
+host: huaweicloud.com
+tags:
+  - name: rds
+paths:
+  /v3/{project_id}/configurations/{id}:
+    delete:
+      tag: rds
+      operationId: Delete
+    get:
+      tag: rds
+      operationId: Get
+    put:
+      tag: rds
+      operationId: Update
+  /v3/{project_id}/configurations:
+    post:
+      tag: rds
+      operationId: Create
