@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -33,6 +34,10 @@ var version string
 
 var sdkFilePreFix string
 
+var providerSchemaPath string
+
+var provider string
+
 func init() {
 	flag.StringVar(&basePath, "basePath", "./", "base Path")
 	flag.StringVar(&outputDir, "outputDir", "./api/", "api yaml file output Dir")
@@ -40,6 +45,9 @@ func init() {
 	flag.StringVar(&filterFilePath, "filterFilePath", "", "Specifies the terraform resource been scan")
 	flag.StringVar(&sdkFilePreFix, "sdkFilePreFix", "github.com/chnsz/golangsdk/openstack/",
 		"Specifies the path of sdk")
+	flag.StringVar(&providerSchemaPath, "providerSchemaPath", "schema.json",
+		"CMD: terraform providers schema -json >./schema.json")
+	flag.StringVar(&provider, "provider", "huaweicloud", "过滤指定provider输出")
 }
 func main() {
 
@@ -56,8 +64,10 @@ func main() {
 	subPackagePath := basePath + "huaweicloud/"
 	mergeFunctionFileToInvokeFile(subPackagePath)
 
+	rsNames, dsNames, err := parseSchemaInfo(providerSchemaPath, provider)
+
 	var publicFuncArray []string
-	err2 := filepath.Walk(subPackagePath, func(path string, fInfo os.FileInfo, err error) error {
+	err = filepath.Walk(subPackagePath, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
 			log.Println("scan path failed:", err)
 			return err
@@ -66,13 +76,13 @@ func main() {
 		if fInfo.IsDir() {
 			fmt.Println(path, fInfo.Size(), fInfo.Name())
 
-			searchPackage2(path, publicFuncArray)
+			searchPackage2(path, publicFuncArray, rsNames, dsNames, provider)
 		}
 
 		return nil
 	})
-	if err2 != nil {
-		log.Println("scan path failed:", err2)
+	if err != nil {
+		log.Println("scan path failed:", err)
 	}
 
 	//将固定的文件替换到指定目录
@@ -202,10 +212,10 @@ func TestGenApi(t *testing.T) {
 	//获取所有文件
 
 	subPackage := basePath + "huaweicloud/"
-	searchPackage2(subPackage, nil)
+	searchPackage2(subPackage, nil, nil, nil, "")
 }
 
-func searchPackage2(subPackage string, publicFuncs []string) {
+func searchPackage2(subPackage string, publicFuncs, rsNames, dsNames []string, provider string) {
 	set := token.NewFileSet()
 	packs, err := parser.ParseDir(set, subPackage, nil, 0)
 	println("current scan path:", subPackage, ",package count:", len(packs))
@@ -220,28 +230,39 @@ func searchPackage2(subPackage string, publicFuncs []string) {
 		fmt.Println("packageName:", pack.Name, ",file_count:", len(pack.Files))
 		for filePath, f := range pack.Files {
 			//fmt.Println("file path:", filePath)
-			if strings.LastIndex(filePath, "test.go") < 0 &&
-				!isDeprecatedFile(filePath) &&
-				strings.LastIndex(filePath, "/deprecated/") < 0 &&
-				strings.LastIndex(filePath, filterFilePath) > -1 &&
-				(strings.LastIndex(filePath, "resource_huaweicloud_") > -1 ||
-					strings.LastIndex(filePath, "data_source_huaweicloud_") > -1) {
+			if strings.LastIndex(filePath, "test.go") > 0 || isDeprecatedFile(filePath) ||
+				strings.LastIndex(filePath, "/deprecated/") > 0 {
+				log.Println("skip file:", filePath)
+				continue
+			}
+
+			if (strings.LastIndex(filePath, "resource_huaweicloud_") > -1 ||
+				strings.LastIndex(filePath, "data_source_huaweicloud_") > -1) &&
+				strings.LastIndex(filePath, filterFilePath) > -1 {
 				packageName := f.Name.Name
 
 				resourceName := filePath[strings.LastIndex(filePath, "/")+1 : len(filePath)-3] //获得文件名字
 				//去除版本号
 				re3, _ := regexp.Compile(`_v\d+$`)
 				resourceName = re3.ReplaceAllString(resourceName, "")
+
+				// 根据provider提供的资源，过滤资源
+				if ok := isExportResource(resourceName, provider, rsNames, dsNames); !ok {
+					log.Println("skip file which not export:", filePath)
+					skipFiles = append(skipFiles, filePath)
+					continue
+				}
 				fmt.Println("file:", resourceName, ":", packageName, ":", f.Package)
 				//拿到文件所有信息
 				//组装成yaml
 
 				yarmStr := buildYaml(parseResourceFile(resourceName, filePath, f, set, publicFuncs))
 				//这里开始一个文件生成一个描述文件
-				outputFile := outputDir + resourceName + ".yaml"
+
+				outputFile := outputDir + strings.Replace(resourceName, "huaweicloud", provider, -1) + ".yaml"
 				err := ioutil.WriteFile(outputFile, []byte(yarmStr), 0664)
 				if err == nil {
-					log.Println("写入成功", resourceName)
+					log.Println("写入成功", outputFile)
 				}
 			} else {
 				log.Println("skip file:", filePath)
@@ -390,6 +411,7 @@ func removeDuplicateCloudUri(array []CloudUri) []CloudUri {
 
 	for _, v := range array {
 		entry := v.url + v.httpMethod + v.resourceType
+		entry = strings.ToLower(entry)
 		if _, ok := keys[entry]; !ok {
 			keys[entry] = v
 			list = append(list, entry)
@@ -586,7 +608,7 @@ func parseConfigFile(filePath string) {
 			reg := regexp.MustCompile(`NewServiceClient\("(.*)"`)
 			submatch := reg.FindAllStringSubmatch(funcSrc, -1)
 			if len(submatch) < 1 {
-				log.Println("parse config error,searching regxp:", reg, "in func:", funcSrc[:120])
+				log.Println("parse config error,searching regxp:", reg, "in func:", funcSrc[:50])
 			} else {
 				for i := 0; i < len(submatch); i++ {
 					categoryName := submatch[i][1]
@@ -755,7 +777,7 @@ schemes:
 host: huaweicloud.com
 tags:%s
 paths:%s
-`, version, resourceName, description, strings.Join(tags, ""), paths)
+`, version, strings.Replace(resourceName, "huaweicloud", provider, -1), description, strings.Join(tags, ""), paths)
 	return yamlTemplate
 }
 
@@ -1212,4 +1234,73 @@ func filePathExists(path string) bool {
 		return false
 	}
 	return true
+}
+
+func parseSchemaInfo(schemaJsonPath, provider string) (rsNames []string, dsNames []string, err error) {
+	input, err := ioutil.ReadFile(schemaJsonPath)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var mapResult map[string]interface{}
+
+	if err = json.Unmarshal(input, &mapResult); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	sc := mapResult["provider_schemas"].(map[string]interface{})
+	for k, v := range sc {
+		if strings.Contains(k, provider) {
+			m := v.(map[string]interface{})
+			rs := m["resource_schemas"].(map[string]interface{})
+			ds := m["data_source_schemas"].(map[string]interface{})
+
+			for name := range rs {
+				rsNames = append(rsNames, name)
+			}
+			for name := range ds {
+				dsNames = append(dsNames, name)
+			}
+		}
+
+	}
+
+	ioutil.WriteFile("resource_name.txt", []byte(strings.Join(rsNames, "\n")), 0644)
+	ioutil.WriteFile("data_source_name.txt", []byte(strings.Join(dsNames, "\n")), 0644)
+	return
+}
+
+func isExportResource(resourceFileName, provider string, rsNames []string, dsNames []string) bool {
+	re3, _ := regexp.Compile(`^_v\d+$`)
+
+	if strings.HasPrefix(resourceFileName, "resource_") {
+		if len(rsNames) < 1 {
+			return true
+		}
+		resourceFileName = strings.TrimPrefix(resourceFileName, "resource_")
+		resourceFileName = strings.Replace(resourceFileName, "huaweicloud", provider, -1)
+		for _, v := range rsNames {
+			remaindStr := strings.TrimPrefix(v, resourceFileName)
+			if remaindStr == "" || re3.MatchString(remaindStr) {
+				return true
+			}
+		}
+	}
+
+	if strings.HasPrefix(resourceFileName, "data_source_") {
+		if len(dsNames) < 1 {
+			return true
+		}
+		resourceFileName = strings.TrimPrefix(resourceFileName, "data_source_")
+		resourceFileName = strings.Replace(resourceFileName, "huaweicloud", provider, -1)
+		for _, v := range dsNames {
+			remaindStr := strings.TrimPrefix(v, resourceFileName)
+			if remaindStr == "" || re3.MatchString(remaindStr) {
+				return true
+			}
+		}
+	}
+	return false
 }

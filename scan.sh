@@ -60,7 +60,9 @@ runApiScan() {
     cp ../../main.go ./main.go
     echo ${outputDir} >../../output_dir.info
     subPackPath="/huaweicloud"
-    go run main.go -basePath=${res}"/" -outputDir=${outputDir} -version=${version}
+    providerSchemaPath="../../schema.json"
+    go run main.go -basePath=${res}"/" -outputDir=${outputDir} -version=${version} -providerSchemaPath=${providerSchemaPath}
+    ##其他 go run main.go -basePath=${res}"/" -outputDir=${outputDir} -version=${version} -providerSchemaPath=${providerSchemaPath} -provider=flexibleengine
 }
 
 runApiScan
