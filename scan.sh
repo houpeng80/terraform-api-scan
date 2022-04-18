@@ -37,6 +37,7 @@ runApiScan() {
     rm -rf ${version}
 
     downLoadUrl="https://github.com/huaweicloud/terraform-provider-huaweicloud/archive/refs/tags/"${fileName}
+    # downLoadUrl="https://github.com/huaweicloud/terraform-provider-huaweicloud/archive/refs/heads/master.zip"
     echo ${downLoadUrl}
 
     wget ${downLoadUrl} -O ${fileName}

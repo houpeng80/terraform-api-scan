@@ -728,11 +728,11 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath s
 
 		oneUrlParam := cloudUri[i]
 
-		//这里将EIP的几个服务的 tags 产品从vpc 改为EIP
-		resourcesType := oneUrlParam.resourceType
-		resourcesType = fixProduct(resourcesType, filePath)
+		resourcesType := oneUrlParam.serviceCatalog.Product
 
-		tags = append(tags, fmt.Sprintf("\n  - name: %s", resourcesType))
+		//处理特殊情况
+		resourcesType = fixProduct(resourcesType, filePath)
+		tags = append(tags, resourcesType)
 
 		resourceBase := "/" + oneUrlParam.serviceCatalog.Version + "/"
 
@@ -762,6 +762,31 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath s
 	}
 	fmt.Println("tags.length2:", len(tags))
 	tags = removeDuplicateValues(tags)
+	//如果有多个tags,则找到关键资源
+	if len(tags) > 1 {
+		var mainTag string
+		existErrTag := false
+		for _, v := range tags {
+			if v != "" {
+				if strings.Contains(resourceName, fmt.Sprintf("_%s_", strings.ToLower(v))) {
+					mainTag = v
+				}
+			} else {
+				existErrTag = true
+			}
+		}
+
+		if existErrTag {
+			log.Println("资源文件存在解析异常,部分方法缺少tag,请查看", resourceName)
+		} else if mainTag != "" {
+			tags = []string{mainTag}
+		}
+	}
+
+	for i, v := range tags {
+		tags[i] = fmt.Sprintf("\n  - name: %s", v)
+	}
+
 	fmt.Println("tags.length3:", len(tags))
 
 	if waitingUpdateResource(resourceName) {
@@ -782,9 +807,9 @@ paths:%s
 	return yamlTemplate
 }
 
-// 这里将EIP的几个服务的 tags 产品从vpc 改为EIP
-func fixProduct(resourcesType, filePath string) string {
-	eipFiles := []string{
+func fixProduct(resourcesType, curFilePath string) string {
+	// 这里将EIP的几个服务的 tags 产品从vpc 改为EIP
+	specifyFiles := []string{
 		"data_source_huaweicloud_vpc_bandwidth.go",
 		"data_source_huaweicloud_vpc_eip.go",
 		"data_source_huaweicloud_vpc_eips.go",
@@ -792,20 +817,108 @@ func fixProduct(resourcesType, filePath string) string {
 		"resource_huaweicloud_vpc_bandwidth.go",
 		"resource_huaweicloud_vpc_eip.go",
 	}
-	flag := false
-	for _, v := range eipFiles {
-		if strings.LastIndex(filePath, v) > -1 {
-			flag = true
-			break
-		}
+
+	if v, ok := isSpecifyName(specifyFiles, "EIP", resourcesType, curFilePath); ok {
+		return v
 	}
 
-	if flag == true {
-		return "EIP"
+	// Kafka
+	specifyFiles = []string{
+		"resource_huaweicloud_dms_kafka_instance.go",
+		"resource_huaweicloud_dms_kafka_topic.go",
+		"data_source_huaweicloud_vpc_eips.go",
+		"resource_huaweicloud_eip_associate.go",
+		"resource_huaweicloud_vpc_bandwidth.go",
+		"resource_huaweicloud_vpc_eip.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "Kafka", resourcesType, curFilePath); ok {
+		return v
+	}
+
+	// RabbitMQ
+	specifyFiles = []string{
+		"resource_huaweicloud_dms_rabbitmq_instance.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "RabbitMQ", resourcesType, curFilePath); ok {
+		return v
+	}
+	// lb
+	specifyFiles = []string{
+		"resource_huaweicloud_lb_loadbalancer.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "ELB", resourcesType, curFilePath); ok {
+		return v
+	}
+
+	// FunctionGraph
+	specifyFiles = []string{
+		"resource_huaweicloud_fgs_trigger.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "FunctionGraph", resourcesType, curFilePath); ok {
+		return v
+	}
+
+	// ecs
+	specifyFiles = []string{
+		"resource_huaweicloud_compute_interface_attach.go",
+		"resource_huaweicloud_compute_instance.go",
+		"resource_huaweicloud_compute_eip_associate.go",
+		"data_source_huaweicloud_compute_instance.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "ECS", resourcesType, curFilePath); ok {
+		return v
+	}
+
+	// APIG
+	specifyFiles = []string{
+		"resource_huaweicloud_apig_vpc_channel.go",
+		"resource_huaweicloud_apig_instance.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "APIG", resourcesType, curFilePath); ok {
+		return v
+	}
+
+	// MRS
+	specifyFiles = []string{
+		"resource_huaweicloud_mapreduce_cluster.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "MRS", resourcesType, curFilePath); ok {
+		return v
+	}
+
+	// CCE
+	specifyFiles = []string{
+		"resource_huaweicloud_cce_node.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "CCE", resourcesType, curFilePath); ok {
+		return v
+	}
+
+	// Redis
+	specifyFiles = []string{
+		"resource_huaweicloud_gaussdb_redis_instance.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "GaussDBforNoSQL", resourcesType, curFilePath); ok {
+		return v
 	}
 
 	return resourcesType
 
+}
+
+func isSpecifyName(files []string, product, orignalName, curFilePath string) (name string, ok bool) {
+	for _, v := range files {
+		if strings.LastIndex(curFilePath, v) > -1 {
+			ok = true
+			break
+		}
+	}
+
+	if ok == true {
+		return product, ok
+	}
+
+	return orignalName, ok
 }
 
 //未迁移至sdk的资源
