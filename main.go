@@ -894,11 +894,27 @@ func fixProduct(resourcesType, curFilePath string) string {
 		return v
 	}
 
-	// Redis
+	// nosql
 	specifyFiles = []string{
 		"resource_huaweicloud_gaussdb_redis_instance.go",
+		"resource_huaweicloud_gaussdb_cassandra_instance.go",
+		"data_source_huaweicloud_gaussdb_cassandra_dedicated_resource.go",
+		"data_source_huaweicloud_gaussdb_cassandra_instance.go",
+		"data_source_huaweicloud_gaussdb_cassandra_instances.go",
+		"data_source_huaweicloud_gaussdb_cassandra_flavors.go",
+		"data_source_huaweicloud_gaussdb_nosql_flavors.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "GaussDBforNoSQL", resourcesType, curFilePath); ok {
+		return v
+	}
+
+	// openGauss
+	specifyFiles = []string{
+		"data_source_huaweicloud_gaussdb_opengauss_instance.go",
+		"data_source_huaweicloud_gaussdb_opengauss_instances.go",
+		"resource_huaweicloud_gaussdb_opengauss_instance.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "GaussDBforopenGauss", resourcesType, curFilePath); ok {
 		return v
 	}
 
