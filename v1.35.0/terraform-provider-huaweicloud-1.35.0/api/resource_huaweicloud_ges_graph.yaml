@@ -1,9 +1,0 @@
-info:
-  version: v1.35.0
-  title: resource_huaweicloud_ges_graph
-  description: 
-schemes:
-  - https
-host: huaweicloud.com
-tags:
-paths:
