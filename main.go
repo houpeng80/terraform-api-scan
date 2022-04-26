@@ -535,10 +535,9 @@ func parseTagUriInFunc(funcSrc string, curResourceFuncDecl *ast.FuncDecl, resour
 					log.Println("categoryName:", categoryName, " find by=", clientName)
 
 					serviceCategory := parseEndPointByClient(categoryName)
-					if categoryName == "elbv2" {
-						serviceCategory.WithOutProjectID = false
-						log.Println("将elbv2中的tag的client的WithOutProjectID设置为=false")
-					}
+					// 处理一起奇葩的tags的奇葩调用
+					serviceCategory.WithOutProjectID = false
+					log.Println("将elbv2中的tag的client的WithOutProjectID设置为=false")
 					cloudUri.resourceType = serviceCategory.Name
 					cloudUri.serviceCatalog = serviceCategory
 				}
@@ -740,7 +739,10 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath s
 		resourcesType = fixProduct(resourcesType, filePath)
 		tags = append(tags, resourcesType)
 
-		resourceBase := "/" + oneUrlParam.serviceCatalog.Version + "/"
+		resourceBase := "/"
+		if oneUrlParam.serviceCatalog.Version != "" {
+			resourceBase = resourceBase + oneUrlParam.serviceCatalog.Version + "/"
+		}
 
 		if !oneUrlParam.serviceCatalog.WithOutProjectID {
 			resourceBase = resourceBase + "{project_id}/"
@@ -1117,8 +1119,14 @@ func parseUriFromUriFile(filePath string) {
 			}
 
 			//	fmt.Println(funcName, uri)
+			funckey := filePath + "." + funcName
+			urlSupportsInUriFile[funckey] = uri
 
-			urlSupportsInUriFile[filePath+"."+funcName] = uri
+			//处理特殊URL
+			if strings.Contains(funckey, "/dns/v2/ptrrecords/urls.go.baseURL") ||
+				strings.Contains(funckey, "/dns/v2/ptrrecords/urls.go.resourceURL") {
+				urlSupportsInUriFile[funckey] = "reverse/floatingips/{region}:{floatingip_id}"
+			}
 
 			//对于循环调用的 ，这里简单处理
 			if uri == "" {
@@ -1127,7 +1135,7 @@ func parseUriFromUriFile(filePath string) {
 				if len(submatch2) > 0 {
 					name := submatch2[0][1]
 					//使用被引用的方法的URL
-					urlSupportsInUriFile[filePath+"."+funcName] = urlSupportsInUriFile[filePath+"."+name]
+					urlSupportsInUriFile[funckey] = urlSupportsInUriFile[filePath+"."+name]
 				}
 
 			}
