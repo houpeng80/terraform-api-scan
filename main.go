@@ -471,6 +471,8 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 				newCloudUri := replaceTagUri(allSubMatch[i], cloudUri.url)
 				if newCloudUri != "" {
 					cloudUri.url = newCloudUri
+					// 处理一起奇葩的tags的奇葩调用
+					cloudUri.serviceCatalog.WithOutProjectID = false
 				}
 				cloudUriArray = append(cloudUriArray, cloudUri)
 			} else {
@@ -533,6 +535,10 @@ func parseTagUriInFunc(funcSrc string, curResourceFuncDecl *ast.FuncDecl, resour
 					log.Println("categoryName:", categoryName, " find by=", clientName)
 
 					serviceCategory := parseEndPointByClient(categoryName)
+					if categoryName == "elbv2" {
+						serviceCategory.WithOutProjectID = false
+						log.Println("将elbv2中的tag的client的WithOutProjectID设置为=false")
+					}
 					cloudUri.resourceType = serviceCategory.Name
 					cloudUri.serviceCatalog = serviceCategory
 				}
