@@ -499,6 +499,7 @@ func replaceTagUri(allSubMatch []string, url string) string {
 		if len(subMatch) > 0 {
 			serviceTag := subMatch[0][1]
 			newUrl = strings.Replace(url, "{resourceType}", serviceTag, -1)
+			return newUrl
 		}
 		return url
 	}
