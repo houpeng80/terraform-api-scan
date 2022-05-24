@@ -494,12 +494,13 @@ func replaceTagUri(allSubMatch []string, url string) string {
 	newUrl := ""
 	if allSubMatch[1] == "tags" && len(allSubMatch) > 4 {
 		log.Println("replace tag:", allSubMatch[4])
-		reg := regexp.MustCompile(`,\s(\w*),|,\s"(.*)",`)
+		reg := regexp.MustCompile(`,\s"(.*)",`)
 		subMatch := reg.FindAllStringSubmatch(allSubMatch[4], 1)
 		if len(subMatch) > 0 {
 			serviceTag := subMatch[0][1]
 			newUrl = strings.Replace(url, "{resourceType}", serviceTag, -1)
 		}
+		return url
 	}
 
 	return newUrl
