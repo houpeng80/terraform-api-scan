@@ -490,10 +490,11 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 }
 
 func replaceTagUri(allSubMatch []string, url string) string {
+	log.Println("entry replace tag:", allSubMatch[0], allSubMatch[1], allSubMatch[2], len(allSubMatch), url)
 	newUrl := ""
 	if allSubMatch[1] == "tags" && len(allSubMatch) > 4 {
 		log.Println("replace tag:", allSubMatch[4])
-		reg := regexp.MustCompile(`,\s"(.*)"`)
+		reg := regexp.MustCompile(`,\s(\w*),|,\s"(.*)",`)
 		subMatch := reg.FindAllStringSubmatch(allSubMatch[4], 1)
 		if len(subMatch) > 0 {
 			serviceTag := subMatch[0][1]
