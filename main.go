@@ -247,23 +247,26 @@ func searchPackage2(subPackage string, publicFuncs, rsNames, dsNames []string, p
 				resourceName = re3.ReplaceAllString(resourceName, "")
 
 				// 根据provider提供的资源，过滤资源
-				if ok := isExportResource(resourceName, provider, rsNames, dsNames); !ok {
+				if rsName, ok := isExportResource(resourceName, provider, rsNames, dsNames); ok {
+					fmt.Println("file:", resourceName, ":", packageName, ":", f.Package)
+					//拿到文件所有信息
+					//组装成yaml
+
+					yarmStr := buildYaml(parseResourceFile(resourceName, filePath, f, set, publicFuncs))
+					//这里开始一个文件生成一个描述文件
+
+					outputFile := outputDir + strings.Replace(rsName, "huaweicloud", provider, -1) + ".yaml"
+					err := ioutil.WriteFile(outputFile, []byte(yarmStr), 0664)
+					if err == nil {
+						log.Println("写入成功", outputFile)
+					}
+
+				} else {
 					log.Println("skip file which not export:", filePath)
 					skipFiles = append(skipFiles, filePath)
 					continue
 				}
-				fmt.Println("file:", resourceName, ":", packageName, ":", f.Package)
-				//拿到文件所有信息
-				//组装成yaml
 
-				yarmStr := buildYaml(parseResourceFile(resourceName, filePath, f, set, publicFuncs))
-				//这里开始一个文件生成一个描述文件
-
-				outputFile := outputDir + strings.Replace(resourceName, "huaweicloud", provider, -1) + ".yaml"
-				err := ioutil.WriteFile(outputFile, []byte(yarmStr), 0664)
-				if err == nil {
-					log.Println("写入成功", outputFile)
-				}
 			} else {
 				log.Println("skip file:", filePath)
 				skipFiles = append(skipFiles, filePath)
@@ -1455,35 +1458,75 @@ func parseSchemaInfo(schemaJsonPath, provider string) (rsNames []string, dsNames
 	return
 }
 
-func isExportResource(resourceFileName, provider string, rsNames []string, dsNames []string) bool {
+func isExportResource(resourceFileName, provider string, rsNames []string, dsNames []string) (string, bool) {
 	re3, _ := regexp.Compile(`^_v\d+$`)
 
 	if strings.HasPrefix(resourceFileName, "resource_") {
 		if len(rsNames) < 1 {
-			return true
+			return "", false
 		}
-		resourceFileName = strings.TrimPrefix(resourceFileName, "resource_")
+		resourceFileName = mappingTo(resourceFileName, provider)
 		resourceFileName = strings.Replace(resourceFileName, "huaweicloud", provider, -1)
+		simpleFilename := strings.TrimPrefix(resourceFileName, "resource_")
 		for _, v := range rsNames {
-			remaindStr := strings.TrimPrefix(v, resourceFileName)
+			remaindStr := strings.TrimPrefix(v, simpleFilename)
 			if remaindStr == "" || re3.MatchString(remaindStr) {
-				return true
+				return resourceFileName, true
 			}
 		}
 	}
 
 	if strings.HasPrefix(resourceFileName, "data_source_") {
 		if len(dsNames) < 1 {
-			return true
+			return "", false
 		}
-		resourceFileName = strings.TrimPrefix(resourceFileName, "data_source_")
+		resourceFileName = mappingTo(resourceFileName, provider)
 		resourceFileName = strings.Replace(resourceFileName, "huaweicloud", provider, -1)
+		simpleFilename := strings.TrimPrefix(resourceFileName, "data_source_")
 		for _, v := range dsNames {
-			remaindStr := strings.TrimPrefix(v, resourceFileName)
+			remaindStr := strings.TrimPrefix(v, simpleFilename)
 			if remaindStr == "" || re3.MatchString(remaindStr) {
-				return true
+				return resourceFileName, true
 			}
 		}
 	}
-	return false
+	return "", false
+}
+
+func mappingTo(resourceFileName, provider string) string {
+	switch provider {
+	case "flexibleengine":
+		switch resourceFileName {
+		case "resource_huaweicloud_bms_instance":
+			return "resource_flexibleengine_compute_bms_server"
+		case "resource_huaweicloud_mapreduce_cluster":
+			return "resource_flexibleengine_mrs_cluster"
+		case "resource_huaweicloud_mapreduce_job":
+			return "resource_flexibleengine_mrs_job"
+		case "resource_huaweicloud_compute_eip_associate":
+			return "resource_flexibleengine_networking_floatingip_associate"
+		case "resource_huaweicloud_rds_read_replica_instance":
+			return "resource_flexibleengine_rds_read_replica"
+		case "resource_huaweicloud_obs_bucket":
+			return "resource_flexibleengine_s3_bucket"
+		case "resource_huaweicloud_obs_bucket_object":
+			return "resource_flexibleengine_s3_bucket_object"
+		case "resource_huaweicloud_obs_bucket_policy":
+			return "resource_flexibleengine_s3_bucket_policy"
+		case "data_source_huaweicloud_evs_volumes":
+			return "data_source_flexibleengine_blockstorage_volume"
+		case "data_source_huaweicloud_cce_nodes":
+			return "data_source_flexibleengine_cce_node_ids"
+		case "data_source_huaweicloud_bms_flavors":
+			return "data_source_flexibleengine_compute_bms_flavors"
+		case "data_source_huaweicloud_dds_flavors":
+			return "data_source_flexibleengine_dds_flavor"
+		case "data_source_huaweicloud_obs_bucket_object":
+			return "data_source_flexibleengine_s3_bucket_object"
+		default:
+			return resourceFileName
+		}
+	default:
+		return resourceFileName
+	}
 }
