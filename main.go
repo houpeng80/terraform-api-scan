@@ -252,7 +252,7 @@ func searchPackage2(subPackage string, publicFuncs, rsNames, dsNames []string, p
 					//拿到文件所有信息
 					//组装成yaml
 
-					yarmStr := buildYaml(parseResourceFile(resourceName, filePath, f, set, publicFuncs))
+					yarmStr := buildYaml(parseResourceFile(resourceName, filePath, f, set, publicFuncs, rsName))
 					//这里开始一个文件生成一个描述文件
 
 					outputFile := outputDir + strings.Replace(rsName, "huaweicloud", provider, -1) + ".yaml"
@@ -340,7 +340,7 @@ func removeDuplicateValues(array []string) []string {
 	return list
 }
 
-func parseResourceFile(resourceName string, filePath string, file *ast.File, fset *token.FileSet, publicFuncs []string) (resourceName2 string, description string, allURI []CloudUri, rpath string) {
+func parseResourceFile(resourceName string, filePath string, file *ast.File, fset *token.FileSet, publicFuncs []string, newResourceName string) (resourceName2 string, description string, allURI []CloudUri, rpath string, newResourceName2 string) {
 	//先找到使用SDK的地方
 	sdkPackages := make(map[string]string) //key： 先取别名>包名
 	for _, d := range file.Imports {
@@ -370,7 +370,7 @@ func parseResourceFile(resourceName string, filePath string, file *ast.File, fse
 
 	// 在 conig文件中，使用resourceType 匹配出catogery等基础信息
 
-	return resourceName, "", allURI, filePath
+	return resourceName, "", allURI, filePath, newResourceName
 }
 
 func findAllFunc(f *ast.File, fset *token.FileSet) []*ast.FuncDecl {
@@ -730,7 +730,7 @@ type CloudUri struct {
 	serviceCatalog config.ServiceCatalog
 }
 
-func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath string) string {
+func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, newResourceName string) string {
 	var tags = []string{}
 
 	var paths string
@@ -817,7 +817,7 @@ schemes:
 host: huaweicloud.com
 tags:%s
 paths:%s
-`, version, strings.Replace(resourceName, "huaweicloud", provider, -1), description, strings.Join(tags, ""), paths)
+`, version, strings.Replace(newResourceName, "huaweicloud", provider, -1), description, strings.Join(tags, ""), paths)
 	return yamlTemplate
 }
 
