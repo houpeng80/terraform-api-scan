@@ -55,7 +55,7 @@ runApiScan() {
     outputDir=${res}"/api/"
     rm -rf ${outputDir}
     mkdir ${outputDir}
-    awk -v line=$(awk '/var allServiceCatalog/{print NR}' huaweicloud/config/endpoints.go) 'BEGIN{print "package config\n\n var AllServiceCatalog = map[string]ServiceCatalog{"}{if(NR>line){print $0}}' huaweicloud/config/endpoints.go >huaweicloud/config/endpoints2.go
+    awk -v startIndex=$(awk '/var allServiceCatalog/{print NR}' huaweicloud/config/endpoints.go) -v endIndex=$(awk '/func GetServiceEndpoint/{print NR}' huaweicloud/config/endpoints.go) 'BEGIN{print "package config\n\n var AllServiceCatalog = map[string]ServiceCatalog{"}{if(NR>startIndex && NR<endIndex-2){print $0}}' huaweicloud/config/endpoints.go >huaweicloud/config/endpoints2.go
     #
 
     cp ../../main.go ./main.go
