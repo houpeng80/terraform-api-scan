@@ -6,3 +6,5 @@ v*
 *.json
 *.hcl
 .terraform/**
+scan-autogen-code/input/**
+scan-autogen-code/output/**
