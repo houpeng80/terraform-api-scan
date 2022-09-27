@@ -6,12 +6,6 @@
 
 runApiScan() {
 
-    url="http://c.biancheng.net/index.html"
-    echo ${url#*/}
-    echo ${url##*/}
-    echo ${url%index*} #结果为 http://c.biancheng.net
-    echo ${url%%/*}    #结果为 http:
-
     url="https://api.github.com/repos/huaweicloud/terraform-provider-huaweicloud/releases/latest"
     echo ${url}
 

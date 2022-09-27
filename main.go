@@ -52,16 +52,16 @@ func init() {
 func main() {
 
 	flag.Parse()
+	log.Printf("basePath: %s\n", basePath)
 
 	configFilePath = basePath + "huaweicloud/config/config.go"
-
 	endPointSrcFilePath = basePath + "huaweicloud/config/endpoints.go"
 
-	log.Printf("basePath:%s", basePath)
-	//先解析 config:
+	// 先解析 config:
 	parseConfigFile(configFilePath)
-	//获取所有文件
-	subPackagePath := basePath + "huaweicloud/"
+
+	// 获取所有文件
+	subPackagePath := basePath + provider + "/"
 	mergeFunctionFileToInvokeFile(subPackagePath)
 
 	rsNames, dsNames, err := parseSchemaInfo(providerSchemaPath, provider)
@@ -69,7 +69,7 @@ func main() {
 	var publicFuncArray []string
 	err = filepath.Walk(subPackagePath, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
-			log.Println("scan path failed:", err)
+			log.Printf("scan path %s failed: %s\n", path, err)
 			return err
 		}
 
@@ -85,7 +85,7 @@ func main() {
 		log.Println("scan path failed:", err)
 	}
 
-	//将固定的文件替换到指定目录
+	// 将固定的文件替换到指定目录
 	copy(outputDir, version, "data_source_huaweicloud_csms_secret_version.yaml")
 
 }
@@ -106,7 +106,7 @@ func copy(outputDir, version, src string) error {
 	return nil
 }
 
-//将抽取出来的单独方法类写入调用的类中，这里是列举
+// 将抽取出来的单独方法类写入调用的类中，这里是列举
 func mergeFunctionFileToInvokeFile(serviceBasePath string) {
 	fileMap := map[string]string{
 		"compute_instance_v2_networking.go": "resource_huaweicloud_compute_instance.go",
@@ -117,6 +117,7 @@ func mergeFunctionFileToInvokeFile(serviceBasePath string) {
 	for k, v := range fileMap {
 		set, f, resourceFilebytes := parseFileSrc(serviceBasePath + k)
 		set2, f2, resourceFilebytes2 := parseFileSrc(serviceBasePath + v)
+
 		var importsArray []string
 		for _, item := range f.Imports {
 			importsArray = append(importsArray, item.Path.Value)
@@ -127,7 +128,7 @@ func mergeFunctionFileToInvokeFile(serviceBasePath string) {
 			// fmt.Println("这里开始：", string(resourceFilebytes[:startIndex]))
 		}
 		importsArray = removeDuplicateValues(importsArray)
-		fmt.Printf("%v", len(importsArray))
+
 		var funcArray []string
 		for _, d := range f.Decls {
 			if fn, isFn := d.(*ast.FuncDecl); isFn {
@@ -154,8 +155,6 @@ func mergeFunctionFileToInvokeFile(serviceBasePath string) {
 		os.Remove(basePath + k)
 
 		ioutil.WriteFile(serviceBasePath+v, []byte(result), 0664)
-		//fmt.Println("这里开始2：", err3)
-
 	}
 
 }
@@ -374,18 +373,14 @@ func parseResourceFile(resourceName string, filePath string, file *ast.File, fse
 }
 
 func findAllFunc(f *ast.File, fset *token.FileSet) []*ast.FuncDecl {
-	names := []string{}
-	sort.Strings(names)
-
 	funcs := []*ast.FuncDecl{}
+
 	for _, d := range f.Decls {
 		if fn, isFn := d.(*ast.FuncDecl); isFn {
 			funcs = append(funcs, fn)
-
-			//fmt.Println(fn.Name.Name, fn.Name.NamePos, set.Position(fn.Pos()), set.Position(fn.End()))
 		}
 	}
-	// h
+
 	return funcs
 }
 
@@ -614,21 +609,23 @@ func parseConfigFile(filePath string) {
 			endIndex := set.Position(fn.End()).Offset
 			funcSrc := string(resourceFilebytes[startIndex:endIndex])
 			funcName := fn.Name.Name
-			//判断是否有 return c.NewServiceClient("elb", region)
+
+			// 判断是否有 return c.NewServiceClient("elb", region)
 			reg := regexp.MustCompile(`NewServiceClient\("(.*)"`)
 			submatch := reg.FindAllStringSubmatch(funcSrc, -1)
 			if len(submatch) < 1 {
-				log.Println("parse config error,searching regxp:", reg, "in func:", funcSrc[:50])
-			} else {
-				for i := 0; i < len(submatch); i++ {
-					categoryName := submatch[i][1]
-					clientDeclInConfig[funcName] = categoryName
-				}
+				log.Println("skip parse config method:", funcName)
+				continue
 			}
 
+			for i := 0; i < len(submatch); i++ {
+				categoryName := submatch[i][1]
+				clientDeclInConfig[funcName] = categoryName
+			}
 		}
-
 	}
+
+	//log.Println("[DEBUG] client config:", clientDeclInConfig)
 }
 
 func parseClientDecl(clientBeenUsed string, funcSrc string, curResourceFuncDecl *ast.FuncDecl, resourceFileBytes []byte, funcDecls []*ast.FuncDecl, fset *token.FileSet) (string, error) {
@@ -668,7 +665,7 @@ func parseClientDecl(clientBeenUsed string, funcSrc string, curResourceFuncDecl 
 
 }
 
-//dnsClient, zoneType, err := chooseDNSClientbyZoneID(d, zoneID, meta) 特殊处理的client定义
+// dnsClient, zoneType, err := chooseDNSClientbyZoneID(d, zoneID, meta) 特殊处理的client定义
 func parseSpecialClientDecl(clientBeenUsed string, funcSrc string) string {
 	reg := regexp.MustCompile(fmt.Sprintf(`%s.*:=\schooseDNSClientbyZoneID`, clientBeenUsed))
 	isMatch := reg.MatchString(funcSrc)
@@ -678,7 +675,6 @@ func parseSpecialClientDecl(clientBeenUsed string, funcSrc string) string {
 	return ""
 }
 
-//
 func parseMethodbeenInvoke(funcName string, argsIndex int, resourceFileBytes []byte, funcDecls []*ast.FuncDecl, fset *token.FileSet) (clientBeenUsed string, funcSrc string, curResourceFuncDecl *ast.FuncDecl, exist bool) {
 	exist = false
 
@@ -951,7 +947,7 @@ func isSpecifyName(files []string, product, orignalName, curFilePath string) (na
 	return orignalName, ok
 }
 
-//未迁移至sdk的资源
+// 未迁移至sdk的资源
 func waitingUpdateResource(resourceName string) bool {
 	deprecateFiles := []string{
 		"data_source_huaweicloud_cdm_flavors_v1",
@@ -993,7 +989,7 @@ func parseEndPointByClient(clientName string) (r config.ServiceCatalog) {
 	return config.AllServiceCatalog[clientName]
 }
 
-//创建一个新的endpointFile, export 变量 allServiceCatalog
+// 创建一个新的endpointFile, export 变量 allServiceCatalog
 func buildNewEndPointFile(filePath string) {
 
 	resourceFilebytes, err := ioutil.ReadFile(filePath)
@@ -1033,7 +1029,7 @@ func TestEndpoint(t *testing.T) {
 
 }
 
-//保存 openstack/instances.{func} : uri
+// 保存 openstack/instances.{func} : uri
 var urlSupportsInUriFile = make(map[string]string)
 var urlSupportsInRequestFile = make(map[string]CloudUri)
 
@@ -1345,7 +1341,7 @@ func parseUriFromRequestFile(sdkFileDir string) {
 	parseRequestFuncNotDirect(set, sdkFileDir, resourceFilebytes, funcNotDirectUseURLs, urlSupportsInCurrentFile)
 }
 
-//reg1 := regexp.MustCompile(`\.(Head|Get|Post|Put|Patch|Delete|DeleteWithBody|DeleteWithResponse|DeleteWithBodyResp)\((\w*)\(`)
+// reg1 := regexp.MustCompile(`\.(Head|Get|Post|Put|Patch|Delete|DeleteWithBody|DeleteWithResponse|DeleteWithBodyResp)\((\w*)\(`)
 func mapToStandardHttpMethod(srcHttpMethod string) string {
 	switch srcHttpMethod {
 	case "Head":
