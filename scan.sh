@@ -52,11 +52,12 @@ runApiScan() {
     awk -v startIndex=$(awk '/var allServiceCatalog/{print NR}' huaweicloud/config/endpoints.go) -v endIndex=$(awk '/func GetServiceEndpoint/{print NR}' huaweicloud/config/endpoints.go) 'BEGIN{print "package config\n\n var AllServiceCatalog = map[string]ServiceCatalog{"}{if(NR>startIndex && NR<endIndex-2){print $0}}' huaweicloud/config/endpoints.go >huaweicloud/config/endpoints2.go
     #
 
-    cp ../../main.go ./main.go
+    cp ../../*.go ./
+    rm -f *_test.go
     echo ${outputDir} >../../output_dir.info
     subPackPath="/huaweicloud"
     providerSchemaPath="../../schema.json"
-    go run main.go -basePath=${res}"/" -outputDir=${outputDir} -version=${version} -providerSchemaPath=${providerSchemaPath}
+    go run *.go -basePath=${res}"/" -outputDir=${outputDir} -version=${version} -providerSchemaPath=${providerSchemaPath}
     ##其他 go run main.go -basePath=${res}"/" -outputDir=${outputDir} -version=${version} -providerSchemaPath=${providerSchemaPath} -provider=flexibleengine
 }
 
