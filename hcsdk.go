@@ -149,9 +149,12 @@ func findURIFromResourceFunc2(curResourceFuncDecl *ast.FuncDecl, sdkPackages map
 					categoryName := getCategoryFromClientConfig(clientName)
 					log.Printf("category of client %s is %s\n", clientName, categoryName)
 
-					serviceCategory := parseEndPointByClient(categoryName)
-					cloudUri.resourceType = serviceCategory.Name
-					cloudUri.serviceCatalog = serviceCategory
+					if serviceCategory := parseEndPointByClient(categoryName); serviceCategory != nil {
+						cloudUri.resourceType = serviceCategory.Name
+						cloudUri.serviceCatalog = *serviceCategory
+					} else {
+						log.Printf("[ERROR] can not find service catalog of %s\n", categoryName)
+					}
 				}
 
 				cloudUriArray = append(cloudUriArray, cloudUri)

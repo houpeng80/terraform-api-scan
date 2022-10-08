@@ -6,7 +6,18 @@ import (
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/huaweicloud/terraform-provider-huaweicloud/huaweicloud/config"
 )
+
+type CloudUri struct {
+	url            string
+	httpMethod     string
+	resourceType   string
+	operationId    string
+	filePath       string
+	serviceCatalog config.ServiceCatalog
+}
 
 func sliceContains(s []string, e string) bool {
 	for _, a := range s {
@@ -80,4 +91,8 @@ func mapToStandardHttpMethod(httpMethod string) string {
 	}
 
 	return strings.ToLower(httpMethod)
+}
+
+func parseEndPointByClient(clientName string) *config.ServiceCatalog {
+	return config.GetServiceCatalog(clientName)
 }

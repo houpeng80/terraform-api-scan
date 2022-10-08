@@ -14,18 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/huaweicloud/terraform-provider-huaweicloud/huaweicloud/config"
 )
-
-type CloudUri struct {
-	url            string
-	httpMethod     string
-	resourceType   string
-	operationId    string
-	filePath       string
-	serviceCatalog config.ServiceCatalog
-}
 
 var (
 	// 命令行参数
@@ -668,44 +657,6 @@ func isSameWithPre(cloudUri []CloudUri, curIndex int) bool {
 	}
 
 	return false
-
-}
-
-func parseEndPointByClient(clientName string) (r config.ServiceCatalog) {
-	return config.AllServiceCatalog[clientName]
-}
-
-// 创建一个新的endpointFile, export 变量 allServiceCatalog
-func buildNewEndPointFile(filePath string) {
-
-	resourceFilebytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	set := token.NewFileSet()
-	f, err := parser.ParseFile(set, filePath, nil, 0)
-	if err != nil {
-		log.Println("Failed to parse file:", filePath, err)
-		return
-	}
-
-	for _, object := range f.Scope.Objects {
-		if object.Name == "allServiceCatalog" && object.Kind == ast.Var {
-			valueDecls := object.Decl.(*ast.ValueSpec)
-			//只认基础字符类型
-			startIndex := set.Position(valueDecls.Values[0].Pos()).Offset
-			endIndex := set.Position(valueDecls.Values[0].End()).Offset
-
-			funcSrc := string(resourceFilebytes[startIndex:endIndex])
-
-			funcSrc = "\n var AllServiceCatalog = " + funcSrc
-			funcSrcByte := []byte(funcSrc)
-			resourceFilebytes = append(resourceFilebytes, funcSrcByte...)
-			ioutil.WriteFile(filePath, resourceFilebytes, os.ModeAppend)
-			fmt.Println(startIndex, endIndex, funcSrc)
-		}
-	}
 
 }
 
