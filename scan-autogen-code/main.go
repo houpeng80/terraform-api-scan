@@ -83,6 +83,7 @@ func convertApi(inputApi model.Api, resourceName string) model.Api {
 	var outputApi model.Api
 	outputApi.Info = inputApi.Info
 	outputApi.Info.Title = resourceName
+	outputApi.Info.Version = version
 	outputApi.Servers = inputApi.Servers
 	outputApi.Host = "myhuaweicloud.com"
 	outputApi.Paths = convertPath(inputApi.Paths)
