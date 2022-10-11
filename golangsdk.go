@@ -85,13 +85,7 @@ func parseResourceFile(resourceName string, filePath string, file *ast.File, fse
 	allResourceFileFunc := findAllFunc(file, fset)
 
 	allURI = findAllURI(sdkPackages, resourceFilebytes, allResourceFileFunc, fset, publicFuncs)
-
 	//fmt.Println(allURI)
-	//再找直接调用rest的地方
-
-	// 获得 config.DcsV2Client( 方法   resource_huaweicloud_dcs_instance_v1
-
-	// 在 conig文件中，使用resourceType 匹配出catogery等基础信息
 
 	return resourceName, "", allURI, filePath, newResourceName
 }
@@ -116,9 +110,9 @@ func findAllURI(sdkPackages map[string]string, resourceFileBytes []byte, funcDec
 func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages map[string]string,
 	resourceFileBytes []byte, funcDecls []*ast.FuncDecl, fset *token.FileSet, publicFuncs []string) []CloudUri {
 
+	funcName := curResourceFuncDecl.Name.Name
 	startIndex := fset.Position(curResourceFuncDecl.Pos()).Offset
 	endIndex := fset.Position(curResourceFuncDecl.End()).Offset
-	//fmt.Printf("start:%d,end:%d,all%d \n", startIndex, endIndex, len(resourceFilebytes))
 	funcSrc := string(resourceFileBytes[startIndex:endIndex])
 
 	cloudUriArray := []CloudUri{}
@@ -136,7 +130,7 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 			//methodInvoke := funcStr[methodInvokeIndexStart:methodInvokeIndexEnd]
 			sdkFunctionName := allSubMatch[i][2]
 			clientBeenUsed := allSubMatch[i][3]
-			log.Println("TO find:", curResourceFuncDecl.Name.Name, alias, clientBeenUsed, sdkFunctionName)
+			log.Println("TO find:", funcName, alias, clientBeenUsed, sdkFunctionName)
 
 			cloudUri := parseUriFromSdk(sdkFilePath, sdkFunctionName)
 			//只有在sdk中匹配到的，才是有效的
@@ -144,7 +138,7 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 				//2. 根据这里使用到的client ，向上找最近的一个 serviceClient定义,并根据它找到 resourceType,version等信息
 				clientName, err := parseClientDecl(string(clientBeenUsed), funcSrc, curResourceFuncDecl, resourceFileBytes, funcDecls, fset)
 				if err != nil {
-					log.Println("found none client declare,so skip:", clientBeenUsed, funcSrc)
+					log.Printf("[WARN] found none client declares %s, so skip %s\n", clientBeenUsed, funcName)
 					cloudUri.resourceType = "unknow:" + clientBeenUsed
 				} else {
 					//在config.go中获得 catgegoryName
@@ -159,11 +153,12 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 					}
 				}
 
-				//特殊处理tags类的调用
+				// 特殊处理 golangsdk/openstack/common/tags 包的调用
+				// 1. 替换 {resourceType} 变量
+				// 2. 在URL中增加projectID --- WithOutProjectID = false
 				newCloudUri := replaceTagUri(allSubMatch[i], cloudUri.url)
 				if newCloudUri != "" {
 					cloudUri.url = newCloudUri
-					// 处理一起奇葩的tags的奇葩调用
 					cloudUri.serviceCatalog.WithOutProjectID = false
 				}
 				cloudUriArray = append(cloudUriArray, cloudUri)
@@ -172,31 +167,31 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 			}
 
 		}
-		//2. client 直接定义在方法里 TODO
+		// TODO: client 直接定义在方法里
 	}
 
-	//使用utils中tags相关请求的，特殊处理url
+	// 使用 huaweicloud/utils包中tags 相关请求的，特殊处理url
 	tagCloudUriArray := parseTagUriInFunc(funcSrc, curResourceFuncDecl, resourceFileBytes, funcDecls, fset)
 	cloudUriArray = append(cloudUriArray, tagCloudUriArray...)
 	return cloudUriArray
 }
 
 func replaceTagUri(allSubMatch []string, url string) string {
-	log.Println("entry replace tag:", allSubMatch[0], allSubMatch[1], allSubMatch[2], len(allSubMatch), url)
-	newUrl := ""
 	if allSubMatch[1] == "tags" && len(allSubMatch) > 4 {
-		log.Println("replace tag:", allSubMatch[4])
+		log.Printf("[DEBUG] parse tags URL in `%s`\n", allSubMatch[0])
 		reg := regexp.MustCompile(`,\s"(.*)",`)
-		subMatch := reg.FindAllStringSubmatch(allSubMatch[4], 1)
-		if len(subMatch) > 0 {
-			serviceTag := subMatch[0][1]
-			newUrl = strings.Replace(url, "{resourceType}", serviceTag, -1)
+		subMatch := reg.FindStringSubmatch(allSubMatch[4])
+		if len(subMatch) > 1 {
+			serviceTag := subMatch[1]
+			newUrl := strings.Replace(url, "{resourceType}", serviceTag, -1)
+			log.Printf("[DEBUG] update tags URL from %s to %s\n", url, newUrl)
 			return newUrl
 		}
+		log.Printf("[DEBUG] the tags URL(%s) is not changed\n", url)
 		return url
 	}
 
-	return newUrl
+	return ""
 }
 
 func parseTagUriInFunc(funcSrc string, curResourceFuncDecl *ast.FuncDecl, resourceFileBytes []byte,
@@ -207,22 +202,21 @@ func parseTagUriInFunc(funcSrc string, curResourceFuncDecl *ast.FuncDecl, resour
 	reg := regexp.MustCompile(`utils\.UpdateResourceTags\((\w*),\s(\w*),\s"(.*)",\s(.*)\)`)
 	allSubMatch := reg.FindAllStringSubmatch(funcSrc, -1)
 	if len(allSubMatch) > 0 {
+		log.Printf("[DEBUG] parse tags URL in `%s`\n", allSubMatch[0][0])
+
 		clientBeenUsed := allSubMatch[0][1]
 		serviceType := allSubMatch[0][3]
-		log.Println("parse tag:", clientBeenUsed, serviceType, funcSrc)
 		tagUri := []CloudUri{
 			{url: serviceType + "/{id}/tags/action", httpMethod: "POST", operationId: "batchUpdate"},
 		}
 
-		for i := 0; i < len(tagUri); i++ {
-
-			cloudUri := tagUri[i]
-
+		for _, cloudUri := range tagUri {
 			if cloudUri.url != "" {
 				//2. 根据这里使用到的client ，向上找最近的一个 serviceClient定义,并根据它找到 resourceType,version等信息
 				clientName, err := parseClientDecl(string(clientBeenUsed), funcSrc, curResourceFuncDecl, resourceFileBytes, funcDecls, fset)
 				if err != nil {
-					log.Println("found none client declare,so skip:", clientBeenUsed, funcSrc)
+					funcName := curResourceFuncDecl.Name.Name
+					log.Printf("[WARN] found none client declares %s, so skip %s\n", clientBeenUsed, funcName)
 					cloudUri.resourceType = "unknow:" + clientBeenUsed
 				} else {
 					//在config.go中获得 catgegoryName
@@ -230,9 +224,9 @@ func parseTagUriInFunc(funcSrc string, curResourceFuncDecl *ast.FuncDecl, resour
 					log.Println("categoryName:", categoryName, " find by=", clientName)
 
 					if serviceCategory := parseEndPointByClient(categoryName); serviceCategory != nil {
-						// 处理一起奇葩的tags的奇葩调用
+						// 特殊处理 golangsdk/openstack/common/tags 包的调用
+						// 在URL中增加projectID --- WithOutProjectID = false
 						serviceCategory.WithOutProjectID = false
-						log.Println("将elbv2中的tag的client的WithOutProjectID设置为=false")
 						cloudUri.resourceType = serviceCategory.Name
 						cloudUri.serviceCatalog = *serviceCategory
 					} else {
@@ -390,15 +384,12 @@ func parseUriFromUriFile(filePath string) {
 				reg := regexp.MustCompile(`return\s.*CCEServiceURL\((.*)\)`)
 				submatch2 := reg.FindAllStringSubmatch(funcSrc, 1) //只取第一个
 				if len(submatch2) > 0 {
-					log.Printf("cceClient1:%v,%s", submatch2, funcSrc)
-					log.Printf("cceClient2:%v,%s", submatch2, funcSrc)
-					log.Printf("cceClient2.length:%d", len(submatch2[0]))
+					log.Printf("cceClient: %v, %s\n", submatch2, funcName)
 					submatch = submatch2
 					argStartIndex = 2
 				}
 			}
 			var uri = ""
-			log.Printf("cceClient:%v", submatch)
 			for i := 0; i < len(submatch); i++ {
 				paramStr := submatch[i][1]
 				params := strings.Split(paramStr, ",")
@@ -451,7 +442,7 @@ func parseUriFromUriFile(filePath string) {
 			}
 
 			if uri == "" {
-				log.Println("parse URL failed,method=", funcName, " filePath:", filePath)
+				log.Println("parse URL failed, method=", funcName, " filePath:", filePath)
 			}
 			//fmt.Println("fff:", funcSrc)
 		}
@@ -580,7 +571,7 @@ func parseUriFromRequestFile(sdkFileDir string) {
 					httpMethod := submatch2[i][1]
 					urlFunc := submatch2[i][2]
 					regUrLDecl := regexp.MustCompile(fmt.Sprintf(`%s\s*:=\s*(\w*)`, urlFunc))
-					log.Println("[DEBUG]parseUriFromRequestFile.searchUrlDecl.currentfile", funcName, urlFunc)
+					log.Println("[DEBUG] parseUriFromRequestFile.searchUrlDecl.currentfile", funcName, urlFunc)
 					urlDeclsMatch := regUrLDecl.FindAllStringSubmatch(funcSrc, 1)
 					if len(urlDeclsMatch) > 0 {
 						urlFunc = urlDeclsMatch[0][1]

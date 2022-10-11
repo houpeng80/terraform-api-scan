@@ -31,6 +31,8 @@ var (
 )
 
 func init() {
+	log.SetOutput(os.Stdout)
+
 	flag.StringVar(&basePath, "basePath", "./", "base Path")
 	flag.StringVar(&outputDir, "outputDir", "./api/", "api yaml file output Dir")
 	flag.StringVar(&version, "version", "./api/", "provider version")
