@@ -627,16 +627,13 @@ func isSpecifyName(files []string, product, orignalName, curFilePath string) (na
 // 未迁移至sdk的资源
 func waitingUpdateResource(resourceName string) bool {
 	deprecateFiles := []string{
-		"data_source_huaweicloud_cdm_flavors_v1",
+		"data_source_huaweicloud_cdm_flavors",
 		"data_source_huaweicloud_gaussdb_mysql_flavors",
 		"data_source_huaweicloud_obs_bucket_object",
-		"data_source_huaweicloud_rds_flavors_v3",
-		"resource_huaweicloud_cdm_cluster_v1",
-		"resource_huaweicloud_cloudtable_cluster_v2",
-		"resource_huaweicloud_dws_cluster",
-		"resource_huaweicloud_ges_graph_v1",
+		"resource_huaweicloud_cloudtable_cluster",
+		"resource_huaweicloud_ges_graph",
 		"resource_huaweicloud_mls_instance",
-		"resource_huaweicloud_nat_dnat_rule_v2",
+		"resource_huaweicloud_nat_dnat_rule",
 		"resource_huaweicloud_obs_bucket_object",
 		"resource_huaweicloud_obs_bucket_policy",
 		"resource_huaweicloud_obs_bucket",
