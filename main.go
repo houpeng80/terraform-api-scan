@@ -394,7 +394,9 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 
 		if existErrTag {
 			log.Println("资源文件存在解析异常,部分方法缺少tag,请查看", resourceName)
-		} else if mainTag != "" {
+		} 
+		
+		if mainTag != "" {
 			tags = []string{mainTag}
 		}
 	}
@@ -467,7 +469,9 @@ func buildYamlWithoutBase(resourceName, description string, cloudUri []CloudUri,
 
 		if existErrTag {
 			log.Println("资源文件存在解析异常,部分方法缺少tag,请查看", resourceName)
-		} else if mainTag != "" {
+		} 
+		
+		if mainTag != "" {
 			tags = []string{mainTag}
 		}
 	}
