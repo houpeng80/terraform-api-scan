@@ -1,64 +1,97 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-#第一步 go mod vendor
+LatestFile="latest_version.info"
+LatestVersion=""
+LatestProviderSpace=""
 
-# 将要分析的代码下载到指定目录
-
-runApiScan() {
-
+function get_latest_version() {
     url="https://api.github.com/repos/huaweicloud/terraform-provider-huaweicloud/releases/latest"
-    echo ${url}
+    all_releases="tmp_releases.json"
 
-    curl ${url} >releaseVersion.json
-    # # 使用正则提取需要的区域信息,实际有需要可以提取省市等接口返回的其他信息
-    grep -E '"tag_name"\s*:\s*(.*?),' releaseVersion.json >latest_tmp.info
+    echo "get the latest release from ${url}"
+    curl ${url} >${all_releases} 2>/dev/null
 
-    res=$(cat latest_tmp.info) # eg: "tag_name":     "v1.26.1",
-    res=${res##*:}             #      "v1.26.1",
-    res=${res#*\"}             #删除空格以及第一个引号： v1.26.1",
+    LatestVersion=$(grep -E '"tag_name":' ${all_releases} | awk -F "\"" '{print $4}')
+    echo "the latest release of terraform-provider-huaweicloud is ${LatestVersion}"
 
-    lenth=${#res}
-    echo ${res}
-    echo ${lenth}
-    res=${res%\"*}
+    rm -f ${all_releases}
+    echo ${LatestVersion} >${LatestFile}
+}
 
-    echo ${res}
-    version=${res}
-    echo ${res} >latest_version.info
-    fileName=${res}".zip"
-    echo ${fileName}
-
-    rm -rf ${version}
-
+function download_version() {
+    version=$1
+    fileName="${LatestVersion}.zip"
     downLoadUrl="https://github.com/huaweicloud/terraform-provider-huaweicloud/archive/refs/tags/"${fileName}
-    # downLoadUrl="https://github.com/huaweicloud/terraform-provider-huaweicloud/archive/refs/heads/master.zip"
-    echo ${downLoadUrl}
 
+    rm -rf ${version} ${fileName}
+    if [ $? -ne 0 ]; then
+        echo "ERROR: failed to cleanup the codes of ${version}"
+        exit -1
+    fi
+
+    echo -e "\ndownload the codes of ${version} from ${downLoadUrl}"
     wget ${downLoadUrl} -O ${fileName}
+    if [ $? -ne 0 ]; then
+        echo "ERROR: failed to download the codes of ${version}"
+        exit -1
+    fi
+
+    echo -e "\nunzip ${fileName}..."
     unzip -oq ${fileName} -d ${version}
+    if [ $? -ne 0 ]; then
+        echo "ERROR: failed to unzip ${fileName}"
+        exit -1
+    fi
 
     softFiles=$(ls $version)
     srcDir=${softFiles[0]}
-    echo ${srcDir}
-    cd $version
-    cd $srcDir
-
-    ## 将执行脚本copy进来
-    res=$(pwd) # /home/hm/GitHub/terraform-api-scan/v1.26.1/terraform-provider-huaweicloud-1.26.1
-    echo ${res}
-    outputDir=${res}"/api/"
-    rm -rf ${outputDir}
-    mkdir ${outputDir}
-    awk -v startIndex=$(awk '/var allServiceCatalog/{print NR}' huaweicloud/config/endpoints.go) -v endIndex=$(awk '/func GetServiceEndpoint/{print NR}' huaweicloud/config/endpoints.go) 'BEGIN{print "package config\n\n var AllServiceCatalog = map[string]ServiceCatalog{"}{if(NR>startIndex && NR<endIndex-2){print $0}}' huaweicloud/config/endpoints.go >huaweicloud/config/endpoints2.go
-    #
-
-    cp ../../*.go ./
-    rm -f *_test.go
-    echo ${outputDir} >../../output_dir.info
-    subPackPath="/huaweicloud"
-    providerSchemaPath="../../schema.json"
-    go run *.go -basePath=${res}"/" -outputDir=${outputDir} -version=${version} -providerSchemaPath=${providerSchemaPath}
-    ##其他 go run main.go -basePath=${res}"/" -outputDir=${outputDir} -version=${version} -providerSchemaPath=${providerSchemaPath} -provider=flexibleengine
+    # ./v1.xx.0/terraform-provider-huaweicloud-1.xx.0
+    LatestProviderSpace="./$version/$srcDir"
+    echo "the working space of terraform-provider-huaweicloud ${version} is ${LatestProviderSpace}"
 }
 
-runApiScan
+function do_api_scan() {
+    providerSpace=$1
+    version=$2
+    if [ ! -d $providerSpace ]; then
+        echo "ERROR: $providerSpace is not exist or an directory "
+        exit -1
+    fi
+
+    cp *.go $providerSpace
+    cd $providerSpace
+    rm -f *_test.go
+
+    outputDir="./api/"
+    rm -rf ${outputDir}
+    mkdir ${outputDir}
+    
+    providerSchemaPath="../../schema.json"
+    go run *.go -basePath="./" -outputDir=${outputDir} -version=${version} -providerSchemaPath=${providerSchemaPath}
+    cd -
+}
+
+# execution environment checks
+go version
+if [ $? -ne 0 ]; then
+    echo "ERROR: go command not found"
+    exit 1
+fi
+
+get_latest_version
+if [ "X$LatestVersion" == "X" ]; then
+    echo "ERROR: failed to get the latest release"
+    exit -1
+fi
+
+download_version $LatestVersion
+if [ "X$LatestProviderSpace" == "X" ]; then
+    echo "ERROR: failed to download the $LatestVersion release"
+    exit -1
+fi
+
+echo "====== Begin to parse APIs used by the provider ======"
+do_api_scan $LatestProviderSpace $LatestVersion
+echo "====== End to parse APIs used by the provider ======"
+
+exit 0
