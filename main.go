@@ -77,28 +77,39 @@ func main() {
 	})
 
 	if err != nil {
-		log.Println("scan path failed:", err)
+		fmt.Printf("ERROR: scan path failed: %s\n", err)
 	}
 
-	// 将固定的文件替换到指定目录
-	copy(outputDir, version, "data_source_huaweicloud_csms_secret_version.yaml")
-
+	// 将固定的文件替换到指定目录并替换版本号
+	if err := copy(outputDir, version); err != nil {
+		fmt.Printf("ERROR: copy static files failed: %s\n", err)
+	}
 }
 
-func copy(outputDir, version, src string) error {
-	input, err := ioutil.ReadFile("../../config/static/" + src)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
+func copy(outputDir, version string) error {
+	return filepath.Walk("../../config/static/", func(path string, fInfo os.FileInfo, err error) error {
+		if err != nil {
+			log.Printf("scan path %s failed: %s\n", path, err)
+			return err
+		}
 
-	input = bytes.Replace(input, []byte("v1.34.1"), []byte(version), 1)
+		// 忽略目录
+		if fInfo.IsDir() {
+			return nil
+		}
 
-	err = ioutil.WriteFile(outputDir+src, input, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
+		rawBytes, err := ioutil.ReadFile(path)
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+
+		input := bytes.Replace(rawBytes, []byte("v1.xx.y"), []byte(version), 1)
+
+		fmt.Printf("copy file %s into %s\n", path, outputDir)
+		outputFile := outputDir+fInfo.Name()
+		return ioutil.WriteFile(outputFile, input, 0644)
+	})
 }
 
 // mergeFunctionFileToInvokeFile 将两个文件进行合并
