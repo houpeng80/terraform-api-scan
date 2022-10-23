@@ -142,8 +142,8 @@ func findURIFromResourceFunc2(curResourceFuncDecl *ast.FuncDecl, sdkPackages map
 				// 2. 根据使用到的client ，向上找最近的一个 Client定义, 并根据它找到 resourceType,version等信息
 				clientName, err := parseClientDecl2(clientBeenUsed, funcSrc, curResourceFuncDecl, resourceFileBytes, funcDecls, fset)
 				if err != nil {
-					log.Println("found none client declare, so skip:", clientBeenUsed, funcName)
-					cloudUri.resourceType = "unknow:" + clientBeenUsed
+					log.Println("found none client declares, so skip:", clientBeenUsed, funcName)
+					cloudUri.resourceType = "unknown"
 				} else {
 					// 3. 找到client对应的catalog
 					categoryName := getCategoryFromClientConfig(clientName)

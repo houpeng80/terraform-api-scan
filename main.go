@@ -556,10 +556,6 @@ func fixProduct(resourcesType, curFilePath string) string {
 	specifyFiles = []string{
 		"resource_huaweicloud_dms_kafka_instance.go",
 		"resource_huaweicloud_dms_kafka_topic.go",
-		"data_source_huaweicloud_vpc_eips.go",
-		"resource_huaweicloud_eip_associate.go",
-		"resource_huaweicloud_vpc_bandwidth.go",
-		"resource_huaweicloud_vpc_eip.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "Kafka", resourcesType, curFilePath); ok {
 		return v
@@ -648,6 +644,11 @@ func fixProduct(resourcesType, curFilePath string) string {
 		return v
 	}
 
+	if resourcesType == "" || resourcesType == "unknown" {
+		newType := getCatalogFromName(curFilePath)
+		fmt.Printf("file %s maybe belongs to %s catalog\n", curFilePath, newType)
+		return newType
+	}
 	return resourcesType
 
 }

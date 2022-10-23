@@ -139,7 +139,7 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 				clientName, err := parseClientDecl(string(clientBeenUsed), funcSrc, curResourceFuncDecl, resourceFileBytes, funcDecls, fset)
 				if err != nil {
 					log.Printf("[WARN] found none client declares %s, so skip %s\n", clientBeenUsed, funcName)
-					cloudUri.resourceType = "unknow:" + clientBeenUsed
+					cloudUri.resourceType = "unknown"
 				} else {
 					//在config.go中获得 catgegoryName
 					categoryName := getCategoryFromConfig(clientName)
@@ -217,7 +217,7 @@ func parseTagUriInFunc(funcSrc string, curResourceFuncDecl *ast.FuncDecl, resour
 				if err != nil {
 					funcName := curResourceFuncDecl.Name.Name
 					log.Printf("[WARN] found none client declares %s, so skip %s\n", clientBeenUsed, funcName)
-					cloudUri.resourceType = "unknow:" + clientBeenUsed
+					cloudUri.resourceType = "unknown"
 				} else {
 					//在config.go中获得 catgegoryName
 					categoryName := getCategoryFromConfig(clientName)

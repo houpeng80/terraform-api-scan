@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/token"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -91,6 +92,26 @@ func mapToStandardHttpMethod(httpMethod string) string {
 	}
 
 	return strings.ToLower(httpMethod)
+}
+
+func getCatalogFromName(fileName string) string {
+	var catalog string
+
+	baseName := filepath.Base(fileName)
+	parts := strings.Split(baseName, "_")
+	length := len(parts)
+
+	if parts[0] == "data" && length >= 4 {
+		catalog = parts[3]
+	}
+	if parts[0] == "resource" && length >= 3 {
+		catalog = parts[2]
+	}
+
+	if serviceCategory := parseEndPointByClient(catalog); serviceCategory != nil {
+		return serviceCategory.Name
+	}
+	return strings.ToUpper(catalog)
 }
 
 func parseEndPointByClient(clientName string) *config.ServiceCatalog {
