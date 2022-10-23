@@ -69,7 +69,7 @@ func main() {
 			return err
 		}
 
-		if fInfo.IsDir() && !isSkipFile(path) {
+		if fInfo.IsDir() && !isSkipDirectory(path) {
 			searchPackage(path, publicFuncArray, rsNames, dsNames, provider)
 		}
 
@@ -214,7 +214,7 @@ func searchPackage(subPackage string, publicFuncs, rsNames, dsNames []string, pr
 
 			// 忽略测试文件和deprecated的资源
 			if strings.LastIndex(filePath, "test.go") > 0 || isDeprecatedFile(filePath) ||
-				strings.LastIndex(filePath, "/deprecated/") > 0 {
+				isInternalFile(filePath) {
 				log.Println("skip file which is deprecated or testing:", filePath)
 				continue
 			}
@@ -269,7 +269,7 @@ func searchPackage(subPackage string, publicFuncs, rsNames, dsNames []string, pr
 
 }
 
-func isSkipFile(path string) bool {
+func isSkipDirectory(path string) bool {
 	var skipKeys = []string{
 		"acceptance", "utils", "internal", "helper", "deprecated",
 	}
@@ -288,10 +288,14 @@ func isDeprecatedFile(filePath string) bool {
 		"data_source_huaweicloud_compute_availability_zones_v2",
 		"data_source_huaweicloud_csbs_backup_policy_v1",
 		"data_source_huaweicloud_csbs_backup_v1",
+		"data_source_huaweicloud_cts_tracker_v1",
 		"data_source_huaweicloud_networking_network_v2",
 		"data_source_huaweicloud_networking_subnet_v2",
 		"data_source_huaweicloud_vbs_backup_policy_v2",
 		"data_source_huaweicloud_vbs_backup_v2",
+		"data_source_huaweicloud_vpc_ids",
+		"data_source_huaweicloud_vpc_route_ids",
+		"data_source_huaweicloud_vpc_route.go",
 		"resource_huaweicloud_blockstorage_volume_v2",
 		"resource_huaweicloud_compute_floatingip_v2",
 		"resource_huaweicloud_compute_floatingip_associate_v2",
@@ -303,20 +307,44 @@ func isDeprecatedFile(filePath string) bool {
 		"resource_huaweicloud_fw_firewall_group_v2",
 		"resource_huaweicloud_fw_policy_v2",
 		"resource_huaweicloud_fw_rule_v2",
+		"resource_huaweicloud_ges_graph_v1",
 		"resource_huaweicloud_networking_floatingip_v2",
 		"resource_huaweicloud_networking_floatingip_associate_v2",
 		"resource_huaweicloud_networking_network_v2",
+		"resource_huaweicloud_networking_port_v2",
 		"resource_huaweicloud_networking_router_interface_v2",
 		"resource_huaweicloud_networking_router_route_v2",
 		"resource_huaweicloud_networking_router_v2",
 		"resource_huaweicloud_networking_subnet_v2",
 		"resource_huaweicloud_vbs_backup_policy_v2",
-		"data_source_huaweicloud_cts_tracker_v1",
 		"resource_huaweicloud_vbs_backup_v2",
 		"resource_huaweicloud_rts_stack_v1",
 		"resource_huaweicloud_rts_software_config_v1",
 	}
 	for _, v := range deprecateFiles {
+		if strings.LastIndex(filePath, v) > -1 {
+			return true
+		}
+	}
+	return false
+}
+
+func isInternalFile(filePath string) bool {
+	internalFiles := []string{
+		"resource_huaweicloud_apm_aksk",
+		"resource_huaweicloud_aom_alarm_policy",
+		"resource_huaweicloud_aom_prometheus_instance",
+		"resource_huaweicloud_aom_application",
+		"resource_huaweicloud_aom_component",
+		"resource_huaweicloud_aom_environment",
+		"resource_huaweicloud_aom_cmdb_resource_relationships",
+		"resource_huaweicloud_lts_access_rule",
+		"resource_huaweicloud_lts_dashboard",
+		"resource_huaweicloud_lts_struct_template",
+		"resource_huaweicloud_elb_log",
+	}
+
+	for _, v := range internalFiles {
 		if strings.LastIndex(filePath, v) > -1 {
 			return true
 		}
@@ -394,8 +422,8 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 
 		if existErrTag {
 			log.Println("资源文件存在解析异常,部分方法缺少tag,请查看", resourceName)
-		} 
-		
+		}
+
 		if mainTag != "" {
 			tags = []string{mainTag}
 		}
@@ -469,8 +497,8 @@ func buildYamlWithoutBase(resourceName, description string, cloudUri []CloudUri,
 
 		if existErrTag {
 			log.Println("资源文件存在解析异常,部分方法缺少tag,请查看", resourceName)
-		} 
-		
+		}
+
 		if mainTag != "" {
 			tags = []string{mainTag}
 		}
@@ -631,13 +659,9 @@ func isSpecifyName(files []string, product, orignalName, curFilePath string) (na
 // 未迁移至sdk的资源
 func waitingUpdateResource(resourceName string) bool {
 	deprecateFiles := []string{
-		"data_source_huaweicloud_cdm_flavors",
 		"data_source_huaweicloud_gaussdb_mysql_flavors",
 		"data_source_huaweicloud_obs_bucket_object",
 		"resource_huaweicloud_cloudtable_cluster",
-		"resource_huaweicloud_ges_graph",
-		"resource_huaweicloud_mls_instance",
-		"resource_huaweicloud_nat_dnat_rule",
 		"resource_huaweicloud_obs_bucket_object",
 		"resource_huaweicloud_obs_bucket_policy",
 		"resource_huaweicloud_obs_bucket",
