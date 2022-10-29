@@ -84,6 +84,9 @@ func main() {
 	if err := copy(outputDir, version); err != nil {
 		fmt.Printf("ERROR: copy static files failed: %s\n", err)
 	}
+
+	copyFromFile(outputDir, "resource_huaweicloud_gaussdb_cassandra_instance.yaml", "resource_huaweicloud_gaussdb_mongo_instance.yaml")
+	copyFromFile(outputDir, "resource_huaweicloud_gaussdb_cassandra_instance.yaml", "resource_huaweicloud_gaussdb_influx_instance.yaml")
 }
 
 func copy(outputDir, version string) error {
@@ -110,6 +113,23 @@ func copy(outputDir, version string) error {
 		outputFile := outputDir + fInfo.Name()
 		return ioutil.WriteFile(outputFile, input, 0644)
 	})
+}
+
+func copyFromFile(dir, source, target string) error {
+	fmt.Printf("copy file %s as %s\n", source, target)
+	sourcePath := filepath.Join(dir, source)
+	rawBytes, err := ioutil.ReadFile(sourcePath)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	sourceName := strings.TrimSuffix(source, ".yaml")
+	targetName := strings.TrimSuffix(target, ".yaml")
+	input := bytes.Replace(rawBytes, []byte(sourceName), []byte(targetName), 1)
+
+	targetPath := filepath.Join(dir, target)
+	return ioutil.WriteFile(targetPath, input, 0644)
 }
 
 // mergeFunctionFileToInvokeFile 将两个文件进行合并
@@ -631,6 +651,14 @@ func fixProduct(resourcesType, curFilePath string) string {
 		"resource_huaweicloud_gaussdb_opengauss_instance.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "GaussDBforopenGauss", resourcesType, curFilePath); ok {
+		return v
+	}
+
+	// dew
+	specifyFiles = []string{
+		"resource_huaweicloud_kps_keypair.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "DEW", resourcesType, curFilePath); ok {
 		return v
 	}
 

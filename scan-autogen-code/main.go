@@ -56,17 +56,21 @@ func convert(filePath string, outputDir string) {
 		log.Printf("error: %v", err)
 	}
 
-	var inputApi model.Api
-	err = yaml.Unmarshal(inputContent, &inputApi)
-	if err != nil {
-		log.Printf("error: %v", err)
-	}
 	index := strings.LastIndex(filePath, "/")
 	if index > 0 {
 		index = index + 1
 	}
 	fileName := filePath[index:]
-	outputApi := convertApi(inputApi, strings.TrimSuffix(fileName, ".yaml"))
+	resourceName := strings.TrimSuffix(fileName, ".yaml")
+	log.Printf("[DEBUG] parsing %s ...", resourceName)
+
+	var inputApi model.Api
+	err = yaml.Unmarshal(inputContent, &inputApi)
+	if err != nil {
+		log.Printf("error: %v", err)
+	}
+
+	outputApi := convertApi(inputApi, resourceName)
 	outputContent, err := yaml.Marshal(outputApi)
 	if err != nil {
 		log.Printf("error: %v", err)
