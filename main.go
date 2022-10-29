@@ -107,7 +107,7 @@ func copy(outputDir, version string) error {
 		input := bytes.Replace(rawBytes, []byte("v1.xx.y"), []byte(version), 1)
 
 		fmt.Printf("copy file %s into %s\n", path, outputDir)
-		outputFile := outputDir+fInfo.Name()
+		outputFile := outputDir + fInfo.Name()
 		return ioutil.WriteFile(outputFile, input, 0644)
 	})
 }
@@ -444,11 +444,6 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 		tags[i] = fmt.Sprintf("\n  - name: %s", v)
 	}
 
-	if waitingUpdateResource(resourceName) {
-		description = "404.This resource is waiting to be upgraded, so there is none method output."
-		log.Println(description, resourceName)
-	}
-
 	var yamlTemplate = fmt.Sprintf(`info:
   version: %s
   title: %s
@@ -517,11 +512,6 @@ func buildYamlWithoutBase(resourceName, description string, cloudUri []CloudUri,
 
 	for i, v := range tags {
 		tags[i] = fmt.Sprintf("\n  - name: %s", v)
-	}
-
-	if waitingUpdateResource(resourceName) {
-		description = "404.This resource is waiting to be upgraded, so there is none method output."
-		log.Println(description, resourceName)
 	}
 
 	var yamlTemplate = fmt.Sprintf(`info:
@@ -666,24 +656,6 @@ func isSpecifyName(files []string, product, orignalName, curFilePath string) (na
 	}
 
 	return orignalName, ok
-}
-
-// 未迁移至sdk的资源
-func waitingUpdateResource(resourceName string) bool {
-	deprecateFiles := []string{
-		"data_source_huaweicloud_gaussdb_mysql_flavors",
-		"data_source_huaweicloud_obs_bucket_object",
-		"resource_huaweicloud_cloudtable_cluster",
-		"resource_huaweicloud_obs_bucket_object",
-		"resource_huaweicloud_obs_bucket_policy",
-		"resource_huaweicloud_obs_bucket",
-	}
-	for _, v := range deprecateFiles {
-		if strings.LastIndex(resourceName, v) > -1 {
-			return true
-		}
-	}
-	return false
 }
 
 func isSameWithPre(cloudUri []CloudUri, curIndex int) bool {

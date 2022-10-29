@@ -109,7 +109,7 @@ func getCatalogFromName(fileName string) string {
 	}
 
 	if serviceCategory := parseEndPointByClient(catalog); serviceCategory != nil {
-		return serviceCategory.Name
+		return serviceCategory.Product
 	}
 	return strings.ToUpper(catalog)
 }
