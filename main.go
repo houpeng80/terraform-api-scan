@@ -14,6 +14,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/jmespath/go-jmespath"
 )
 
 var (
@@ -720,10 +722,16 @@ func parseSchemaInfo(schemaJsonPath, provider string) (rsNames []string, dsNames
 			rs := m["resource_schemas"].(map[string]interface{})
 			ds := m["data_source_schemas"].(map[string]interface{})
 
-			for name := range rs {
+			for name, schema := range rs {
+				if isDeprecatedResource(schema) {
+					continue
+				}
 				rsNames = append(rsNames, name)
 			}
-			for name := range ds {
+			for name, schema := range ds {
+				if isDeprecatedResource(schema) {
+					continue
+				}
 				dsNames = append(dsNames, name)
 			}
 		}
@@ -745,8 +753,16 @@ func parseSchemaInfo(schemaJsonPath, provider string) (rsNames []string, dsNames
 	return
 }
 
+func isDeprecatedResource(schema interface{}) bool {
+	v, err := jmespath.Search("block.deprecated", schema)
+	if err != nil || v == nil {
+		return false
+	}
+	return true
+}
+
 func isExportResource(resourceFileName, provider string, rsNames []string, dsNames []string) (string, bool) {
-	re3, _ := regexp.Compile(`^_v\d+$`)
+	re, _ := regexp.Compile(`^_v[1-9]$`)
 
 	if strings.HasPrefix(resourceFileName, "resource_") {
 		if len(rsNames) < 1 {
@@ -757,7 +773,7 @@ func isExportResource(resourceFileName, provider string, rsNames []string, dsNam
 		simpleFilename := strings.TrimPrefix(resourceFileName, "resource_")
 		for _, v := range rsNames {
 			remaindStr := strings.TrimPrefix(v, simpleFilename)
-			if remaindStr == "" || re3.MatchString(remaindStr) {
+			if remaindStr == "" || re.MatchString(remaindStr) {
 				return resourceFileName, true
 			}
 		}
@@ -772,7 +788,7 @@ func isExportResource(resourceFileName, provider string, rsNames []string, dsNam
 		simpleFilename := strings.TrimPrefix(resourceFileName, "data_source_")
 		for _, v := range dsNames {
 			remaindStr := strings.TrimPrefix(v, simpleFilename)
-			if remaindStr == "" || re3.MatchString(remaindStr) {
+			if remaindStr == "" || re.MatchString(remaindStr) {
 				return resourceFileName, true
 			}
 		}
