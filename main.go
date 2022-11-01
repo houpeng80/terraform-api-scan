@@ -35,7 +35,7 @@ func init() {
 
 	flag.StringVar(&basePath, "basePath", "./", "base Path")
 	flag.StringVar(&outputDir, "outputDir", "./api/", "api yaml file output Dir")
-	flag.StringVar(&version, "version", "./api/", "provider version")
+	flag.StringVar(&version, "version", "", "provider version")
 	flag.StringVar(&filterFilePath, "filterFilePath", "", "Specifies the terraform resource been scan")
 	flag.StringVar(&providerSchemaPath, "providerSchemaPath", "schema.json",
 		"CMD: terraform providers schema -json >./schema.json")
