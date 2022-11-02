@@ -405,6 +405,16 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 
 		// 处理特殊情况
 		resourcesType = fixProduct(resourcesType, filePath)
+		// 从文件名中获取 catalog
+		if resourcesType == "" || resourcesType == "unknown" {
+			newCatalog, newType := getCatalogFromName(filePath)
+			fmt.Printf("file %s maybe belongs to %s catalog\n", filePath, newType)
+			resourcesType = newType
+			if newCatalog != nil {
+				item.serviceCatalog = *newCatalog
+			}
+		}
+
 		tags = append(tags, resourcesType)
 
 		resourceBase := "/"
@@ -664,13 +674,7 @@ func fixProduct(resourcesType, curFilePath string) string {
 		return v
 	}
 
-	if resourcesType == "" || resourcesType == "unknown" {
-		newType := getCatalogFromName(curFilePath)
-		fmt.Printf("file %s maybe belongs to %s catalog\n", curFilePath, newType)
-		return newType
-	}
 	return resourcesType
-
 }
 
 func isSpecifyName(files []string, product, orignalName, curFilePath string) (name string, ok bool) {

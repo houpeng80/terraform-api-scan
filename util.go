@@ -94,7 +94,7 @@ func mapToStandardHttpMethod(httpMethod string) string {
 	return strings.ToLower(httpMethod)
 }
 
-func getCatalogFromName(fileName string) string {
+func getCatalogFromName(fileName string) (*config.ServiceCatalog, string) {
 	var catalog string
 
 	baseName := filepath.Base(fileName)
@@ -109,9 +109,9 @@ func getCatalogFromName(fileName string) string {
 	}
 
 	if serviceCategory := parseEndPointByClient(catalog); serviceCategory != nil {
-		return serviceCategory.Product
+		return serviceCategory, serviceCategory.Product
 	}
-	return strings.ToUpper(catalog)
+	return nil, strings.ToUpper(catalog)
 }
 
 func parseEndPointByClient(clientName string) *config.ServiceCatalog {
