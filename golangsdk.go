@@ -143,7 +143,7 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 				} else {
 					//在config.go中获得 catgegoryName
 					categoryName := getCategoryFromConfig(clientName)
-					log.Println("categoryName:", categoryName, " find by=", clientName)
+					log.Printf("[DEBUG] service category of %s is %s", clientName, categoryName)
 
 					if serviceCategory := parseEndPointByClient(categoryName); serviceCategory != nil {
 						cloudUri.resourceType = serviceCategory.Name
@@ -221,7 +221,7 @@ func parseTagUriInFunc(funcSrc string, curResourceFuncDecl *ast.FuncDecl, resour
 				} else {
 					//在config.go中获得 catgegoryName
 					categoryName := getCategoryFromConfig(clientName)
-					log.Println("categoryName:", categoryName, " find by=", clientName)
+					log.Printf("[DEBUG] service category of %s is %s", clientName, categoryName)
 
 					if serviceCategory := parseEndPointByClient(categoryName); serviceCategory != nil {
 						// 特殊处理 golangsdk/openstack/common/tags 包的调用
@@ -257,23 +257,27 @@ func parseUriFromSdk(sdkFilePath string, sdkFunctionName string) (r CloudUri) {
 
 func parseClientDecl(clientBeenUsed string, funcSrc string, curResourceFuncDecl *ast.FuncDecl, resourceFileBytes []byte, funcDecls []*ast.FuncDecl, fset *token.FileSet) (string, error) {
 	var clientName string
-	//先从入参中查找，
-	funcFirstLineSrc := string(resourceFileBytes[fset.Position(curResourceFuncDecl.Pos()).Offset:fset.Position(curResourceFuncDecl.Body.Pos()).Offset])
+
+	// 先从入参中查找
+	funcName := curResourceFuncDecl.Name.Name
+	startIndex := fset.Position(curResourceFuncDecl.Pos()).Offset
+	startBodyIndex := fset.Position(curResourceFuncDecl.Body.Pos()).Offset
+	funcFirstLineSrc := string(resourceFileBytes[startIndex:startBodyIndex])
+
 	regInArgs := regexp.MustCompile(fmt.Sprintf(`.*(\s*%s\s\*golangsdk.ServiceClient)`, clientBeenUsed))
-	// regInArgs := regexp.MustCompile(fmt.Sprintf(`.*(\s*%s\s*\S*)`, clientBeenUsed))
 	isClientInArgs := regInArgs.MatchString(funcFirstLineSrc)
 	if isClientInArgs {
 		tpStr := regInArgs.FindAllString(funcFirstLineSrc, 1)[0]
 		argsIndex := strings.Count(tpStr, ",") + 1
-		//遍历方法，找到body体里有调用的
+		// 遍历方法，找到body体里有调用的
 		clientUsedInInvoke, funcSrcInInvoke, funcInvoke, ok := parseMethodbeenInvoke(curResourceFuncDecl.Name.Name, argsIndex, resourceFileBytes, funcDecls, fset)
 		if ok {
 			return parseClientDecl(clientUsedInInvoke, funcSrcInInvoke, funcInvoke, resourceFileBytes, funcDecls, fset)
-		} else {
-			return "", fmt.Errorf("unfound the client:%s been init in this file body:%s", clientBeenUsed, funcSrc)
 		}
+
+		return "", fmt.Errorf("cannot found the client %s in defination of function %s", clientBeenUsed, funcName)
 	} else {
-		//在当前body中匹配 antiddosClient, err := config.AntiDDosV1Client(GetRegion(d, config)) 匹配到AntiDDosV1Client
+		// 在当前body中匹配 antiddosClient, err := config.AntiDDosV1Client(GetRegion(d, config)) 匹配到AntiDDosV1Client
 		reg := regexp.MustCompile(fmt.Sprintf(`%s\s*,\s*\w*\s*:?=\s*\w*\.(\w*)`, clientBeenUsed))
 		allSubMatch := reg.FindAllStringSubmatch(funcSrc, 1)
 		if len(allSubMatch) < 1 {
@@ -283,7 +287,7 @@ func parseClientDecl(clientBeenUsed string, funcSrc string, curResourceFuncDecl 
 				return specailClient, nil
 			}
 			fmt.Println("没有到找到定义serviceClient的地方", clientBeenUsed, funcSrc)
-			return "", fmt.Errorf("unfound the client:%s in func body:%s", clientBeenUsed, funcSrc)
+			return "", fmt.Errorf("cannot found the client %s in function %s body", clientBeenUsed, funcName)
 		}
 
 		clientName = allSubMatch[0][1]
@@ -555,7 +559,7 @@ func parseUriFromRequestFile(sdkFileDir string) {
 					//判断
 					//	mapToUrl(urlFunc,urlFilePath)
 					//	println("ososo:", httpClientMethod, urlFunc)
-					log.Println("[DEBUG]parseUriFromRequestFile.currentLine", funcName, urlFunc)
+					log.Println("[DEBUG] parseUriFromRequestFile.currentLine", funcName, urlFunc)
 					//	fmt.Println("request path:", filePath, "uriFilePath:", uriFilePath)
 					uri := getUriFromUriFile(uriFilePath, urlFunc, true)
 					//	fmt.Println(funcName, uri)
@@ -582,7 +586,7 @@ func parseUriFromRequestFile(sdkFileDir string) {
 						urlSupportsInRequestFile[sdkFileDir+"."+funcName] = *cloudUri
 						urlSupportsInCurrentFile = append(urlSupportsInCurrentFile, funcName)
 					} else {
-						log.Println("[ERROR]failed find URL decl in request.go", fn.Name.Name, urlFunc)
+						log.Println("[ERROR] failed find URL decl in request.go", fn.Name.Name, urlFunc)
 					}
 
 				}
@@ -594,7 +598,7 @@ func parseUriFromRequestFile(sdkFileDir string) {
 					//判断
 					//	mapToUrl(urlFunc,urlFilePath)
 					//	println("ososo:", httpClientMethod, urlFunc)
-					log.Println("[DEBUG]parseUriFromRequestFile.currentLine", funcName, urlFunc)
+					log.Println("[DEBUG] parseUriFromRequestFile.currentLine", funcName, urlFunc)
 					//	fmt.Println("request path:", filePath, "uriFilePath:", uriFilePath)
 					uri := getUriFromUriFile(uriFilePath, urlFunc, true)
 					//	fmt.Println(funcName, uri)
@@ -610,7 +614,7 @@ func parseUriFromRequestFile(sdkFileDir string) {
 					httpMethod := "get"
 					urlFunc := submatch4[i][1]
 					regUrLDecl := regexp.MustCompile(fmt.Sprintf(`%s\s*:=\s*(\w*)`, urlFunc))
-					log.Println("[DEBUG]parseUriFromRequestFile.searchUrlDecl.currentfile", funcName, urlFunc)
+					log.Println("[DEBUG] parseUriFromRequestFile.searchUrlDecl.currentfile", funcName, urlFunc)
 					urlDeclsMatch := regUrLDecl.FindAllStringSubmatch(funcSrc, 1)
 					if len(urlDeclsMatch) > 0 {
 						urlFunc = urlDeclsMatch[0][1]
@@ -621,7 +625,7 @@ func parseUriFromRequestFile(sdkFileDir string) {
 						urlSupportsInRequestFile[sdkFileDir+"."+funcName] = *cloudUri
 						urlSupportsInCurrentFile = append(urlSupportsInCurrentFile, funcName)
 					} else {
-						log.Println("[ERROR]failed find URL decl in request.go", fn.Name.Name, urlFunc)
+						log.Println("[ERROR] failed find URL decl in request.go", fn.Name.Name, urlFunc)
 					}
 
 				}
