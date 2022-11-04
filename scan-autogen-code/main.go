@@ -1,31 +1,47 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 
 	"github.com/chnsz/scan-autogen-code/model"
+	"github.com/jmespath/go-jmespath"
 	"gopkg.in/yaml.v3"
 )
 
 var inputDir string
 var outputDir string
 var version string
+var providerSchemaPath string
+var provider string
 
 func init() {
 	flag.StringVar(&inputDir, "inputDir", "./input", "The input dir of auto-gen resource yaml")
 	flag.StringVar(&outputDir, "outputDir", "./output", "api yaml file output Dir")
 	flag.StringVar(&version, "version", "", "provider version")
+	flag.StringVar(&providerSchemaPath, "providerSchemaPath", "../schema.json",
+		"CMD: terraform providers schema -json >./schema.json")
+	flag.StringVar(&provider, "provider", "huaweicloud", "过滤指定provider输出")
+
 }
 
 func main() {
 	flag.Parse()
+	// 解析 schema, 获取所有的resource和data source列表
+	rsNames, dsNames, err := parseSchemaInfo(providerSchemaPath, provider)
+	if err != nil {
+		fmt.Printf("Failed to parse %s schema file: %s\n", provider, err)
+		os.Exit(-1)
+	}
+
 	files := GetAllFiles(inputDir, ".yaml")
 	for _, v := range files {
-		convert(v, outputDir)
+		convert(v, outputDir, rsNames, dsNames)
 	}
 }
 
@@ -50,7 +66,7 @@ func GetAllFiles(dirPth string, suffix string) (files []string) {
 	return files
 }
 
-func convert(filePath string, outputDir string) {
+func convert(filePath string, outputDir string, rsNames, dsNames []string) {
 	inputContent, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		log.Printf("error: %v", err)
@@ -63,6 +79,9 @@ func convert(filePath string, outputDir string) {
 	fileName := filePath[index:]
 	resourceName := strings.TrimSuffix(fileName, ".yaml")
 	log.Printf("[DEBUG] parsing %s ...", resourceName)
+	if _, ok := isExportResource(resourceName, provider, rsNames, dsNames); !ok {
+		return
+	}
 
 	var inputApi model.Api
 	err = yaml.Unmarshal(inputContent, &inputApi)
@@ -139,4 +158,81 @@ func parseTags(paths map[string]map[string]model.OperationInfo) []model.Tag {
 		rst = append(rst, model.Tag{Name: k})
 	}
 	return rst
+}
+
+func parseSchemaInfo(schemaJsonPath, provider string) (rsNames []string, dsNames []string, err error) {
+	input, err := ioutil.ReadFile(schemaJsonPath)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var mapResult map[string]interface{}
+
+	if err = json.Unmarshal(input, &mapResult); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	sc := mapResult["provider_schemas"].(map[string]interface{})
+	for k, v := range sc {
+		if strings.Contains(k, provider) {
+			m := v.(map[string]interface{})
+			rs := m["resource_schemas"].(map[string]interface{})
+			ds := m["data_source_schemas"].(map[string]interface{})
+
+			for name, schema := range rs {
+				if isDeprecatedResource(schema) {
+					continue
+				}
+				rsNames = append(rsNames, name)
+			}
+			for name, schema := range ds {
+				if isDeprecatedResource(schema) {
+					continue
+				}
+				dsNames = append(dsNames, name)
+			}
+		}
+
+	}
+
+	return
+}
+
+func isDeprecatedResource(schema interface{}) bool {
+	v, err := jmespath.Search("block.deprecated", schema)
+	if err != nil || v == nil {
+		return false
+	}
+	return true
+}
+
+func isExportResource(resourceFileName, provider string, rsNames []string, dsNames []string) (string, bool) {
+	if strings.HasPrefix(resourceFileName, "resource_") {
+		if len(rsNames) < 1 {
+			return "", false
+		}
+		resourceFileName = strings.Replace(resourceFileName, "huaweicloud", provider, -1)
+		simpleFilename := strings.TrimPrefix(resourceFileName, "resource_")
+		for _, v := range rsNames {
+			if v == simpleFilename {
+				return resourceFileName, true
+			}
+		}
+	}
+
+	if strings.HasPrefix(resourceFileName, "data_source_") {
+		if len(dsNames) < 1 {
+			return "", false
+		}
+		resourceFileName = strings.Replace(resourceFileName, "huaweicloud", provider, -1)
+		simpleFilename := strings.TrimPrefix(resourceFileName, "data_source_")
+		for _, v := range dsNames {
+			if v == simpleFilename {
+				return resourceFileName, true
+			}
+		}
+	}
+	return "", false
 }
