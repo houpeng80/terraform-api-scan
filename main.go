@@ -403,8 +403,6 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 	for i, item := range cloudUri {
 		resourcesType := item.serviceCatalog.Product
 
-		// 处理特殊情况
-		resourcesType = fixProduct(resourcesType, filePath)
 		// 从文件名中获取 catalog
 		if resourcesType == "" || resourcesType == "unknown" {
 			newCatalog, newType := getCatalogFromName(filePath)
@@ -414,6 +412,15 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 				item.serviceCatalog = *newCatalog
 			}
 		}
+
+		// VPC和EIP共用一个endpoint, 使用URL进行区分
+		if resourcesType == "VPC" && hasEIP(item.url) {
+			log.Printf("[DEBUG] update product VPC to EIP because the URI is %s", item.url)
+			resourcesType = "EIP"
+		}
+
+		// 处理特殊情况
+		//resourcesType = fixProduct(resourcesType, filePath)
 
 		tags = append(tags, resourcesType)
 
@@ -496,8 +503,25 @@ func buildYamlWithoutBase(resourceName, description string, cloudUri []CloudUri,
 	for i, item := range cloudUri {
 		resourcesType := item.serviceCatalog.Product
 
+		// 从文件名中获取 catalog
+		if resourcesType == "" || resourcesType == "unknown" {
+			newCatalog, newType := getCatalogFromName(filePath)
+			log.Printf("[WARN] file %s maybe belongs to %s catalog\n", filePath, newType)
+			resourcesType = newType
+			if newCatalog != nil {
+				item.serviceCatalog = *newCatalog
+			}
+		}
+
+		// VPC和EIP共用一个endpoint, 使用URL进行区分
+		if resourcesType == "VPC" && hasEIP(item.url) {
+			log.Printf("[DEBUG] update product VPC to EIP because the URI is %s", item.url)
+			resourcesType = "EIP"
+		}
+
 		// 处理特殊情况
-		resourcesType = fixProduct(resourcesType, filePath)
+		//resourcesType = fixProduct(resourcesType, filePath)
+
 		tags = append(tags, resourcesType)
 
 		isSameWithPre := isSameWithPre(cloudUri, i)
@@ -556,6 +580,10 @@ tags:%s
 paths:%s
 `, version, strings.Replace(newResourceName, "huaweicloud", provider, -1), description, strings.Join(tags, ""), paths)
 	return yamlTemplate
+}
+
+func hasEIP(uri string) bool {
+	return strings.Contains(uri, "/publicips") || strings.Contains(uri, "/bandwidths")
 }
 
 func fixProduct(resourcesType, curFilePath string) string {
