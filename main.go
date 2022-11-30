@@ -408,7 +408,7 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 		// 从文件名中获取 catalog
 		if resourcesType == "" || resourcesType == "unknown" {
 			newCatalog, newType := getCatalogFromName(filePath)
-			fmt.Printf("file %s maybe belongs to %s catalog\n", filePath, newType)
+			log.Printf("[WARN] file %s maybe belongs to %s catalog\n", filePath, newType)
 			resourcesType = newType
 			if newCatalog != nil {
 				item.serviceCatalog = *newCatalog
@@ -446,7 +446,6 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 			paths = paths + yamlTemplate
 		}
 	}
-	//fmt.Println("tags.length:", len(tags))
 
 	tags = removeDuplicateValues(tags)
 	//如果有多个tags,则找到关键资源
@@ -560,7 +559,7 @@ paths:%s
 }
 
 func fixProduct(resourcesType, curFilePath string) string {
-	// 这里将EIP的几个服务的 tags 产品从vpc 改为EIP
+	// 这里将EIP的几个服务的产品从vpc 改为EIP
 	specifyFiles := []string{
 		"data_source_huaweicloud_vpc_bandwidth.go",
 		"data_source_huaweicloud_vpc_eip.go",
@@ -571,6 +570,7 @@ func fixProduct(resourcesType, curFilePath string) string {
 	}
 
 	if v, ok := isSpecifyName(specifyFiles, "EIP", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to EIP in %s", resourcesType, curFilePath)
 		return v
 	}
 
@@ -580,6 +580,7 @@ func fixProduct(resourcesType, curFilePath string) string {
 		"resource_huaweicloud_dms_kafka_topic.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "Kafka", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to Kafka in %s", resourcesType, curFilePath)
 		return v
 	}
 
@@ -588,13 +589,24 @@ func fixProduct(resourcesType, curFilePath string) string {
 		"resource_huaweicloud_dms_rabbitmq_instance.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "RabbitMQ", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to RabbitMQ in %s", resourcesType, curFilePath)
 		return v
 	}
+	// RocketMQ
+	specifyFiles = []string{
+		"resource_huaweicloud_dms_rocketmq_instance.go",
+	}
+	if v, ok := isSpecifyName(specifyFiles, "RocketMQ", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to RocketMQ in %s", resourcesType, curFilePath)
+		return v
+	}
+
 	// lb
 	specifyFiles = []string{
 		"resource_huaweicloud_lb_loadbalancer.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "ELB", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to ELB in %s", resourcesType, curFilePath)
 		return v
 	}
 
@@ -603,6 +615,7 @@ func fixProduct(resourcesType, curFilePath string) string {
 		"resource_huaweicloud_fgs_trigger.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "FunctionGraph", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to FunctionGraph in %s", resourcesType, curFilePath)
 		return v
 	}
 
@@ -614,15 +627,7 @@ func fixProduct(resourcesType, curFilePath string) string {
 		"data_source_huaweicloud_compute_instance.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "ECS", resourcesType, curFilePath); ok {
-		return v
-	}
-
-	// APIG
-	specifyFiles = []string{
-		"resource_huaweicloud_apig_vpc_channel.go",
-		"resource_huaweicloud_apig_instance.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "APIG", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to ECS in %s", resourcesType, curFilePath)
 		return v
 	}
 
@@ -631,6 +636,7 @@ func fixProduct(resourcesType, curFilePath string) string {
 		"resource_huaweicloud_mapreduce_cluster.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "MRS", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to MRS in %s", resourcesType, curFilePath)
 		return v
 	}
 
@@ -639,6 +645,7 @@ func fixProduct(resourcesType, curFilePath string) string {
 		"resource_huaweicloud_cce_node.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "CCE", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to CCE in %s", resourcesType, curFilePath)
 		return v
 	}
 
@@ -653,6 +660,7 @@ func fixProduct(resourcesType, curFilePath string) string {
 		"data_source_huaweicloud_gaussdb_nosql_flavors.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "GaussDBforNoSQL", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to GaussDBforNoSQL in %s", resourcesType, curFilePath)
 		return v
 	}
 
@@ -663,6 +671,7 @@ func fixProduct(resourcesType, curFilePath string) string {
 		"resource_huaweicloud_gaussdb_opengauss_instance.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "GaussDBforopenGauss", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to GaussDBforopenGauss in %s", resourcesType, curFilePath)
 		return v
 	}
 
@@ -671,13 +680,14 @@ func fixProduct(resourcesType, curFilePath string) string {
 		"resource_huaweicloud_kps_keypair.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "DEW", resourcesType, curFilePath); ok {
+		log.Printf("[DEBUG] update product %s to DEW in %s", resourcesType, curFilePath)
 		return v
 	}
 
 	return resourcesType
 }
 
-func isSpecifyName(files []string, product, orignalName, curFilePath string) (name string, ok bool) {
+func isSpecifyName(files []string, newProduct, orignalName, curFilePath string) (name string, ok bool) {
 	for _, v := range files {
 		if strings.LastIndex(curFilePath, v) > -1 {
 			ok = true
@@ -686,7 +696,7 @@ func isSpecifyName(files []string, product, orignalName, curFilePath string) (na
 	}
 
 	if ok == true {
-		return product, ok
+		return newProduct, ok
 	}
 
 	return orignalName, ok
