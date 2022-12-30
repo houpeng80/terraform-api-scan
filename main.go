@@ -627,71 +627,8 @@ func fixProduct(resourcesType, curFilePath string) string {
 		}
 	}
 
-	// 这里将EIP的几个服务的产品从vpc 改为EIP
-	specifyFiles := []string{
-		"data_source_huaweicloud_vpc_bandwidth.go",
-		"data_source_huaweicloud_vpc_eip.go",
-		"data_source_huaweicloud_vpc_eips.go",
-		"resource_huaweicloud_eip_associate.go",
-		"resource_huaweicloud_vpc_bandwidth.go",
-		"resource_huaweicloud_vpc_eip.go",
-	}
-
-	if v, ok := isSpecifyName(specifyFiles, "EIP", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to EIP in %s", resourcesType, curFilePath)
-		return v
-	}
-
-	// lb
-	specifyFiles = []string{
-		"resource_huaweicloud_lb_loadbalancer.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "ELB", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to ELB in %s", resourcesType, curFilePath)
-		return v
-	}
-
-	// FunctionGraph
-	specifyFiles = []string{
-		"resource_huaweicloud_fgs_trigger.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "FunctionGraph", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to FunctionGraph in %s", resourcesType, curFilePath)
-		return v
-	}
-
-	// ecs
-	specifyFiles = []string{
-		"resource_huaweicloud_compute_interface_attach.go",
-		"resource_huaweicloud_compute_instance.go",
-		"resource_huaweicloud_compute_eip_associate.go",
-		"data_source_huaweicloud_compute_instance.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "ECS", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to ECS in %s", resourcesType, curFilePath)
-		return v
-	}
-
-	// MRS
-	specifyFiles = []string{
-		"resource_huaweicloud_mapreduce_cluster.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "MRS", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to MRS in %s", resourcesType, curFilePath)
-		return v
-	}
-
-	// CCE
-	specifyFiles = []string{
-		"resource_huaweicloud_cce_node.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "CCE", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to CCE in %s", resourcesType, curFilePath)
-		return v
-	}
-
 	// dew
-	specifyFiles = []string{
+	specifyFiles := []string{
 		"resource_huaweicloud_kps_keypair.go",
 	}
 	if v, ok := isSpecifyName(specifyFiles, "DEW", resourcesType, curFilePath); ok {
