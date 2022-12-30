@@ -420,7 +420,7 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 		}
 
 		// 处理特殊情况
-		//resourcesType = fixProduct(resourcesType, filePath)
+		resourcesType = fixProduct(resourcesType, filePath)
 
 		tags = append(tags, resourcesType)
 
@@ -520,7 +520,7 @@ func buildYamlWithoutBase(resourceName, description string, cloudUri []CloudUri,
 		}
 
 		// 处理特殊情况
-		//resourcesType = fixProduct(resourcesType, filePath)
+		resourcesType = fixProduct(resourcesType, filePath)
 
 		tags = append(tags, resourcesType)
 
@@ -586,7 +586,28 @@ func hasEIP(uri string) bool {
 	return strings.Contains(uri, "/publicips") || strings.Contains(uri, "/bandwidths")
 }
 
+// if the file name **contains** the key, then return the product name
+var specialResourceKeyMap = map[string]string{
+	"_dms_kafka_":    "Kafka",
+	"_dms_rabbitmq_": "RabbitMQ",
+	"_dms_rocketmq_": "RocketMQ",
+
+	"_gaussdb_cassandra_": "GaussDBforNoSQL",
+	"_gaussdb_influx_":    "GaussDBforNoSQL",
+	"_gaussdb_mongo_":     "GaussDBforNoSQL",
+	"_gaussdb_redis_":     "GaussDBforNoSQL",
+	"_gaussdb_mysql_":     "GaussDBforMySQL",
+	"_gaussdb_opengauss_": "GaussDB",
+}
+
 func fixProduct(resourcesType, curFilePath string) string {
+	for k, v := range specialResourceKeyMap {
+		if strings.Contains(curFilePath, k) {
+			log.Printf("[DEBUG] update product %s to %s in %s", resourcesType, v, curFilePath)
+			return v
+		}
+	}
+
 	// 这里将EIP的几个服务的产品从vpc 改为EIP
 	specifyFiles := []string{
 		"data_source_huaweicloud_vpc_bandwidth.go",
@@ -599,33 +620,6 @@ func fixProduct(resourcesType, curFilePath string) string {
 
 	if v, ok := isSpecifyName(specifyFiles, "EIP", resourcesType, curFilePath); ok {
 		log.Printf("[DEBUG] update product %s to EIP in %s", resourcesType, curFilePath)
-		return v
-	}
-
-	// Kafka
-	specifyFiles = []string{
-		"resource_huaweicloud_dms_kafka_instance.go",
-		"resource_huaweicloud_dms_kafka_topic.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "Kafka", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to Kafka in %s", resourcesType, curFilePath)
-		return v
-	}
-
-	// RabbitMQ
-	specifyFiles = []string{
-		"resource_huaweicloud_dms_rabbitmq_instance.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "RabbitMQ", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to RabbitMQ in %s", resourcesType, curFilePath)
-		return v
-	}
-	// RocketMQ
-	specifyFiles = []string{
-		"resource_huaweicloud_dms_rocketmq_instance.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "RocketMQ", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to RocketMQ in %s", resourcesType, curFilePath)
 		return v
 	}
 
@@ -674,32 +668,6 @@ func fixProduct(resourcesType, curFilePath string) string {
 	}
 	if v, ok := isSpecifyName(specifyFiles, "CCE", resourcesType, curFilePath); ok {
 		log.Printf("[DEBUG] update product %s to CCE in %s", resourcesType, curFilePath)
-		return v
-	}
-
-	// nosql
-	specifyFiles = []string{
-		"resource_huaweicloud_gaussdb_redis_instance.go",
-		"resource_huaweicloud_gaussdb_cassandra_instance.go",
-		"data_source_huaweicloud_gaussdb_cassandra_dedicated_resource.go",
-		"data_source_huaweicloud_gaussdb_cassandra_instance.go",
-		"data_source_huaweicloud_gaussdb_cassandra_instances.go",
-		"data_source_huaweicloud_gaussdb_cassandra_flavors.go",
-		"data_source_huaweicloud_gaussdb_nosql_flavors.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "GaussDBforNoSQL", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to GaussDBforNoSQL in %s", resourcesType, curFilePath)
-		return v
-	}
-
-	// openGauss
-	specifyFiles = []string{
-		"data_source_huaweicloud_gaussdb_opengauss_instance.go",
-		"data_source_huaweicloud_gaussdb_opengauss_instances.go",
-		"resource_huaweicloud_gaussdb_opengauss_instance.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "GaussDBforopenGauss", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to GaussDBforopenGauss in %s", resourcesType, curFilePath)
 		return v
 	}
 
