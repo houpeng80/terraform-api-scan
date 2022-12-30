@@ -260,6 +260,13 @@ func searchPackage(subPackage string, publicFuncs, rsNames, dsNames []string, pr
 				continue
 			}
 
+			// 忽略自动生成的文件
+			if isAutoGenetatedFile(filePath) {
+				log.Println("skip file which is auto generrated", filePath)
+				skipFiles = append(skipFiles, filePath)
+				continue
+			}
+
 			// 获得文件名并去除版本号
 			resourceName := filePath[strings.LastIndex(filePath, "/")+1 : len(filePath)-3]
 			re, _ := regexp.Compile(`_v\d+$`)
@@ -383,6 +390,18 @@ func isInternalFile(filePath string) bool {
 		}
 	}
 	return false
+}
+
+func isAutoGenetatedFile(filePath string) bool {
+	var offset int = 200
+
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	header := string(fileBytes[:offset])
+	return strings.Contains(header, "*** AUTO GENERATED CODE ***")
 }
 
 func withGolangSDK(astFile *ast.File) bool {
