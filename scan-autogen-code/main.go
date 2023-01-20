@@ -96,7 +96,7 @@ func convert(filePath string, outputDir string, rsNames, dsNames []string) {
 	}
 
 	sep := string(os.PathSeparator)
-	err = ioutil.WriteFile(outputDir+sep+fileName, outputContent, os.ModePerm)
+	err = ioutil.WriteFile(outputDir+sep+fileName, outputContent, 0644)
 	if err != nil {
 		log.Printf("error: %v", err)
 	}
