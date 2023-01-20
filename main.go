@@ -482,6 +482,7 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 			if v != "" {
 				if strings.Contains(resourceName, fmt.Sprintf("_%s_", strings.ToLower(v))) {
 					mainTag = v
+					break
 				}
 			} else {
 				existErrTag = true
@@ -494,6 +495,8 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 
 		if mainTag != "" {
 			tags = []string{mainTag}
+		} else {
+			log.Printf("[WARN] can not find the main tag of %s", resourceName)
 		}
 	}
 
@@ -602,7 +605,12 @@ paths:%s
 }
 
 func hasEIP(uri string) bool {
-	return strings.Contains(uri, "/publicips") || strings.Contains(uri, "/bandwidths")
+	return strings.Contains(uri, "/publicips") || strings.Contains(uri, "publicips/") ||
+		strings.Contains(uri, "/bandwidths") || strings.Contains(uri, "bandwidths/")
+}
+
+var specialResourceTypes = map[string]string{
+	"COMPUTE": "ECS",
 }
 
 // if the file name **contains** the key, then return the product name
@@ -620,6 +628,11 @@ var specialResourceKeyMap = map[string]string{
 }
 
 func fixProduct(resourcesType, curFilePath string) string {
+	if v, ok := specialResourceTypes[resourcesType]; ok {
+		log.Printf("[DEBUG] update product %s to %s in %s", resourcesType, v, curFilePath)
+		return v
+	}
+
 	for k, v := range specialResourceKeyMap {
 		if strings.Contains(curFilePath, k) {
 			log.Printf("[DEBUG] update product %s to %s in %s", resourcesType, v, curFilePath)
