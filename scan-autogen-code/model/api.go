@@ -13,6 +13,7 @@ type Info struct {
 	Version     string `yaml:"version,omitempty"`
 	Title       string `yaml:"title,omitempty"`
 	Description string `yaml:"description,omitempty"`
+	XrefProduct string `yaml:"x-ref-product,omitempty"` // input
 }
 
 type Tag struct {
@@ -24,8 +25,9 @@ type Server struct {
 }
 
 type OperationInfo struct {
-	Tag         string `yaml:"tag,omitempty"`
-	OperationId string `yaml:"operationId,omitempty"`
-	XrefProduct string `yaml:"x-ref-product,omitempty"`
-	XrefApi     string `yaml:"x-ref-api,omitempty"`
+	Tag         string   `yaml:"tag,omitempty"` // output
+	OperationId string   `yaml:"operationId,omitempty"`
+	XrefProduct string   `yaml:"x-ref-product,omitempty"`
+	XrefApi     string   `yaml:"x-ref-api,omitempty"`
+	Tags        []string `yaml:"tags,omitempty"` // input
 }

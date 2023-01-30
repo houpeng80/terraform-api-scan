@@ -104,13 +104,15 @@ func convert(filePath string, outputDir string, rsNames, dsNames []string) {
 
 func convertApi(inputApi model.Api, resourceName string) model.Api {
 	var outputApi model.Api
-	outputApi.Info = inputApi.Info
-	outputApi.Info.Title = resourceName
-	outputApi.Info.Version = version
+	outputApi.Info = model.Info{
+		Title:       resourceName,
+		Description: inputApi.Info.Description,
+		Version:     version,
+	}
 	outputApi.Servers = inputApi.Servers
 	outputApi.Host = "myhuaweicloud.com"
 	outputApi.Paths = convertPath(inputApi.Paths)
-	outputApi.Tags = parseTags(inputApi.Paths)
+	outputApi.Tags = []model.Tag{{Name: inputApi.Info.XrefProduct}}
 	return outputApi
 }
 
@@ -118,6 +120,10 @@ func convertPath(paths map[string]map[string]model.OperationInfo) map[string]map
 	rst := make(map[string]map[string]model.OperationInfo)
 	for _, path := range paths {
 		for _, operation := range path {
+			if operation.Tags[0] == "Import" {
+				continue
+			}
+
 			apiUrl := strings.Split(operation.XrefApi, " ")
 			if len(apiUrl) != 2 {
 				log.Println("error bad x-ref-api 格式不正确.", operation.OperationId, operation.XrefApi)
@@ -141,21 +147,6 @@ func convertPath(paths map[string]map[string]model.OperationInfo) map[string]map
 			}
 
 		}
-	}
-	return rst
-}
-
-// 得到所有x-ref-product并去重
-func parseTags(paths map[string]map[string]model.OperationInfo) []model.Tag {
-	tagSet := make(map[string]string)
-	for _, path := range paths {
-		for _, operation := range path {
-			tagSet[operation.XrefProduct] = "1"
-		}
-	}
-	rst := make([]model.Tag, 0, len(tagSet))
-	for k := range tagSet {
-		rst = append(rst, model.Tag{Name: k})
 	}
 	return rst
 }
