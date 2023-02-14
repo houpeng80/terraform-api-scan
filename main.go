@@ -477,27 +477,35 @@ func buildYaml(resourceName, description string, cloudUri []CloudUri, filePath, 
 	//如果有多个tags,则找到关键资源
 	if len(tags) > 1 {
 		var mainTag string
-		existErrTag := false
 		for _, v := range tags {
-			if v != "" {
-				if strings.Contains(resourceName, fmt.Sprintf("_%s_", strings.ToLower(v))) {
-					mainTag = v
-					break
-				}
-			} else {
-				existErrTag = true
+			if v == "" {
+				log.Printf("[WARN] some tags in %s is empty, please check it", resourceName)
+				continue
+			}
+
+			if strings.Contains(resourceName, fmt.Sprintf("_%s_", strings.ToLower(v))) {
+				mainTag = v
+				break
 			}
 		}
 
-		if existErrTag {
-			log.Println("资源文件存在解析异常,部分方法缺少tag,请查看", resourceName)
+		// 特殊处理
+		mainProductMap := map[string]string{
+			"resource_huaweicloud_compute_eip_associate": "ECS",
+			"resource_huaweicloud_vpc_eip_associate":     "EIP",
+		}
+		if product, ok := mainProductMap[resourceName]; ok {
+			log.Printf("[DEBUG] the main tag of %s should be %s", resourceName, product)
+			mainTag = product
 		}
 
-		if mainTag != "" {
-			tags = []string{mainTag}
-		} else {
-			log.Printf("[WARN] can not find the main tag of %s", resourceName)
+		if mainTag == "" {
+			log.Printf("[WARN] can not find the main tag of %s, try to get it by path", resourceName)
+			_, product := getCatalogFromName(filePath)
+			mainTag = fixProduct(product, filePath)
 		}
+
+		tags = []string{mainTag}
 	}
 
 	for i, v := range tags {
@@ -567,19 +575,16 @@ func buildYamlWithoutBase(resourceName, description string, cloudUri []CloudUri,
 	//如果有多个tags,则找到关键资源
 	if len(tags) > 1 {
 		var mainTag string
-		existErrTag := false
 		for _, v := range tags {
-			if v != "" {
-				if strings.Contains(resourceName, fmt.Sprintf("_%s_", strings.ToLower(v))) {
-					mainTag = v
-				}
-			} else {
-				existErrTag = true
+			if v == "" {
+				log.Printf("[WARN] some tags in %s is empty, please check it", resourceName)
+				continue
 			}
-		}
 
-		if existErrTag {
-			log.Println("资源文件存在解析异常,部分方法缺少tag,请查看", resourceName)
+			if strings.Contains(resourceName, fmt.Sprintf("_%s_", strings.ToLower(v))) {
+				mainTag = v
+				break
+			}
 		}
 
 		if mainTag != "" {
@@ -610,7 +615,11 @@ func hasEIP(uri string) bool {
 }
 
 var specialResourceTypes = map[string]string{
-	"COMPUTE": "ECS",
+	"COMPUTE":   "ECS",
+	"ANTIDDOS":  "Anti-DDoS",
+	"LB":        "ELB",
+	"MAPREDUCE": "MRS",
+	"KPS":       "DEW",
 }
 
 // if the file name **contains** the key, then return the product name
@@ -638,15 +647,6 @@ func fixProduct(resourcesType, curFilePath string) string {
 			log.Printf("[DEBUG] update product %s to %s in %s", resourcesType, v, curFilePath)
 			return v
 		}
-	}
-
-	// dew
-	specifyFiles := []string{
-		"resource_huaweicloud_kps_keypair.go",
-	}
-	if v, ok := isSpecifyName(specifyFiles, "DEW", resourcesType, curFilePath); ok {
-		log.Printf("[DEBUG] update product %s to DEW in %s", resourcesType, curFilePath)
-		return v
 	}
 
 	return resourcesType
