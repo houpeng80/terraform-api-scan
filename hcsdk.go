@@ -128,7 +128,8 @@ func findURIFromResourceFunc2(curResourceFuncDecl *ast.FuncDecl, sdkPackages map
 
 	for _, sdkFilePath := range sdkPackages {
 		// 找到所有使用client的方法 eg: response, err := client.AddAlarmRule(&createReq)
-		reg := regexp.MustCompile(`= (.*[c|C]lient)\.(\w*)\(.*\)`)
+		// 或者 _, err := client.UpdateTask(&model.UpdateTaskRequest{
+		reg := regexp.MustCompile(`= (.*[c|C]lient)\.(\w*)\(.*[)|{]`)
 		allSubMatch := reg.FindAllStringSubmatch(funcSrc, -1)
 		for i := 0; i < len(allSubMatch); i++ {
 			// 0: 全部字符串, 1: client名称, 2: 方法名称

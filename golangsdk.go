@@ -130,7 +130,7 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 			//methodInvoke := funcStr[methodInvokeIndexStart:methodInvokeIndexEnd]
 			sdkFunctionName := allSubMatch[i][2]
 			clientBeenUsed := allSubMatch[i][3]
-			log.Println("TO find:", funcName, alias, clientBeenUsed, sdkFunctionName)
+			log.Printf("find function %s used %s.%s with %s\n", funcName, alias, sdkFunctionName, clientBeenUsed)
 
 			cloudUri := parseUriFromSdk(sdkFilePath, sdkFunctionName)
 			//只有在sdk中匹配到的，才是有效的
