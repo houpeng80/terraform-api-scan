@@ -139,12 +139,15 @@ func mergeFunctionFileToInvokeFile(serviceBasePath string) {
 	fileMap := map[string]string{
 		"compute_instance_v2_networking.go": "resource_huaweicloud_compute_instance.go",
 		"compute_interface_attach_v2.go":    "resource_huaweicloud_compute_interface_attach.go",
-		"networking_port_v2.go":             "resource_huaweicloud_networking_port_v2.go",
 	}
 
 	for k, v := range fileMap {
 		set, f, resourceFilebytes := parseFileSrc(serviceBasePath + k)
 		set2, f2, resourceFilebytes2 := parseFileSrc(serviceBasePath + v)
+
+		if f == nil || f2 == nil {
+			continue
+		}
 
 		var importsArray []string
 		for _, item := range f.Imports {
