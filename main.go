@@ -623,6 +623,7 @@ var specialResourceTypes = map[string]string{
 	"LB":        "ELB",
 	"MAPREDUCE": "MRS",
 	"KPS":       "DEW",
+	"AOS":       "RFS",
 }
 
 // if the file name **contains** the key, then return the product name
@@ -641,7 +642,7 @@ var specialResourceKeyMap = map[string]string{
 
 func fixProduct(resourcesType, curFilePath string) string {
 	if v, ok := specialResourceTypes[resourcesType]; ok {
-		log.Printf("[DEBUG] update product %s to %s in %s", resourcesType, v, curFilePath)
+		log.Printf("[WARN] update product %s to %s in %s", resourcesType, v, curFilePath)
 		return v
 	}
 
