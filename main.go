@@ -59,12 +59,9 @@ func main() {
 		os.Exit(-1)
 	}
 
-	// 预处理: 将功能性文件合并至对应的资源文件
-	subPackagePath := basePath + provider + "/"
-	mergeFunctionFileToInvokeFile(subPackagePath)
-
 	// 处理目录和子目录
 	var publicFuncArray []string
+	subPackagePath := basePath + provider + "/"
 	err = filepath.Walk(subPackagePath, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("scan path %s failed: %s\n", path, err)
@@ -132,97 +129,6 @@ func copyFromFile(dir, source, target string) error {
 
 	targetPath := filepath.Join(dir, target)
 	return ioutil.WriteFile(targetPath, input, 0644)
-}
-
-// mergeFunctionFileToInvokeFile 将两个文件进行合并
-func mergeFunctionFileToInvokeFile(serviceBasePath string) {
-	fileMap := map[string]string{
-		"compute_instance_v2_networking.go": "resource_huaweicloud_compute_instance.go",
-		"compute_interface_attach_v2.go":    "resource_huaweicloud_compute_interface_attach.go",
-	}
-
-	for k, v := range fileMap {
-		set, f, resourceFilebytes := parseFileSrc(serviceBasePath + k)
-		set2, f2, resourceFilebytes2 := parseFileSrc(serviceBasePath + v)
-
-		if f == nil || f2 == nil {
-			continue
-		}
-
-		var importsArray []string
-		for _, item := range f.Imports {
-			importsArray = append(importsArray, item.Path.Value)
-		}
-		for _, item := range f2.Imports {
-			importsArray = append(importsArray, item.Path.Value)
-		}
-		importsArray = removeDuplicateValues(importsArray)
-
-		var funcArray []string
-		for _, d := range f.Decls {
-			if fn, isFn := d.(*ast.FuncDecl); isFn {
-				startIndex := set.Position(fn.Pos()).Offset
-				endIndex := set.Position(fn.End()).Offset
-
-				funcSrc := string(resourceFilebytes[startIndex:endIndex])
-				funcArray = append(funcArray, funcSrc)
-
-			}
-		}
-
-		endIndex := set2.Position(f2.End()).Offset
-		importStartIndex := set.Position(f2.Imports[0].Pos()).Offset
-		importEndIndex := set.Position(f2.Imports[len(f2.Imports)-1].End()).Offset
-
-		result := string(resourceFilebytes2[:importStartIndex])
-		result = result + "\n" + strings.Join(importsArray, "\n")
-		result = result + "\n" + string(resourceFilebytes2[importEndIndex:endIndex])
-		result = result + "\n" + strings.Join(funcArray, "\n")
-
-		os.Remove(basePath + k)
-
-		ioutil.WriteFile(serviceBasePath+v, []byte(result), 0664)
-	}
-}
-
-// unused func
-func parsePublicFunction(serviceBasePath string) []string {
-	fileMap := []string{
-		"compute_instance_v2_networking.go",
-		"compute_interface_attach_v2.go",
-		"networking_port_v2.go",
-	}
-	var funcArray []string
-	for _, v := range fileMap {
-		set, f, resourceFilebytes := parseFileSrc(serviceBasePath + v)
-
-		for _, d := range f.Decls {
-			if fn, isFn := d.(*ast.FuncDecl); isFn {
-				startIndex := set.Position(fn.Pos()).Offset
-				endIndex := set.Position(fn.End()).Offset
-				funcSrc := string(resourceFilebytes[startIndex:endIndex])
-				funcArray = append(funcArray, funcSrc)
-
-			}
-		}
-	}
-	return funcArray
-
-}
-
-func parseFileSrc(filePath string) (fset *token.FileSet, f *ast.File, resourceFilebytes []byte) {
-	set := token.NewFileSet()
-	f, err := parser.ParseFile(set, filePath, nil, 0)
-	if err != nil {
-		log.Println("Failed to parse file:", filePath, err)
-		return
-	}
-
-	resourceFilebytes, err2 := ioutil.ReadFile(filePath)
-	if err2 != nil {
-		log.Fatal(err2)
-	}
-	return set, f, resourceFilebytes
 }
 
 func searchPackage(subPackage string, publicFuncs, rsNames, dsNames []string, provider string) {
