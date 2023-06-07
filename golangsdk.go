@@ -130,8 +130,13 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 			//methodInvoke := funcStr[methodInvokeIndexStart:methodInvokeIndexEnd]
 			sdkFunctionName := allSubMatch[i][2]
 			clientBeenUsed := allSubMatch[i][3]
-			log.Printf("find function %s used %s.%s with %s\n", funcName, alias, sdkFunctionName, clientBeenUsed)
 
+			if strings.HasPrefix(sdkFunctionName, "Extract") {
+				log.Printf("[DEBUG] skip to parse %s.%s\n", alias, sdkFunctionName)
+				continue
+			}
+
+			log.Printf("find function %s used %s.%s with %s\n", funcName, alias, sdkFunctionName, clientBeenUsed)
 			cloudUri := parseUriFromSdk(sdkFilePath, sdkFunctionName)
 			//只有在sdk中匹配到的，才是有效的
 			if cloudUri.url != "" {
@@ -370,6 +375,9 @@ func parseUriFromUriFile(filePath string) {
 		log.Fatal(err)
 	}
 
+	// 用于保存调用其他URL方法的函数
+	callingFunc := make(map[string]string)
+
 	for _, d := range f.Decls {
 		if fn, isFn := d.(*ast.FuncDecl); isFn {
 			startIndex := set.Position(fn.Pos()).Offset
@@ -377,6 +385,8 @@ func parseUriFromUriFile(filePath string) {
 
 			funcSrc := string(resourceFilebytes[startIndex:endIndex])
 			funcName := fn.Name.Name
+			funckey := filePath + "." + funcName
+
 			//判断是否有 client.ServiceURL(resourcePath, id, passwordPath)
 			reg := regexp.MustCompile(`\.ServiceURL\((.*)\)`)
 			submatch := reg.FindAllStringSubmatch(funcSrc, 1) //只取第一个
@@ -393,38 +403,43 @@ func parseUriFromUriFile(filePath string) {
 					argStartIndex = 2
 				}
 			}
-			var uri = ""
-			for i := 0; i < len(submatch); i++ {
-				paramStr := submatch[i][1]
-				params := strings.Split(paramStr, ",")
-				paramValues := []string{}
-				for j := argStartIndex; j < len(params); j++ {
-					key := strings.TrimSpace(params[j])
-					isString := strings.Contains(key, `"`)
-					key = strings.ReplaceAll(key, `"`, ``)
 
-					if isString {
-						paramValues = append(paramValues, key)
+			if len(submatch) == 0 {
+				regSp := regexp.MustCompile(`return\s(\w+)\(`)
+				submatch2 := regSp.FindAllStringSubmatch(funcSrc, 1) //只取第一个
+				if len(submatch2) > 0 {
+					name := submatch2[0][1]
+					callingFunc[funckey] = name
+				} else {
+					log.Printf("[WARN] can not parse the URL function %s in %s\n", funcName, filePath)
+				}
+				continue
+			}
+
+			paramStr := submatch[0][1]
+			params := strings.Split(paramStr, ",")
+			paramValues := []string{}
+			for j := argStartIndex; j < len(params); j++ {
+				key := strings.TrimSpace(params[j])
+				isString := strings.Contains(key, `"`)
+				key = strings.ReplaceAll(key, `"`, ``)
+
+				if isString {
+					paramValues = append(paramValues, key)
+				} else {
+					v, ok := varInPacks[key]
+					if ok || isString {
+						paramValues = append(paramValues, v)
 					} else {
-						v, ok := varInPacks[key]
-						if ok || isString {
-							paramValues = append(paramValues, v)
-						} else {
-							if strings.HasSuffix(key, ".ProjectID") {
-								key = "project_id"
-							}
-							paramValues = append(paramValues, fmt.Sprintf(`{%s}`, key))
+						if strings.HasSuffix(key, ".ProjectID") {
+							key = "project_id"
 						}
-
+						paramValues = append(paramValues, fmt.Sprintf(`{%s}`, key))
 					}
-
-					uri = strings.Join(paramValues, "/")
 
 				}
 			}
-
-			//	fmt.Println(funcName, uri)
-			funckey := filePath + "." + funcName
+			uri := strings.Join(paramValues, "/")
 			urlSupportsInUriFile[funckey] = uri
 
 			//处理特殊URL
@@ -432,23 +447,15 @@ func parseUriFromUriFile(filePath string) {
 				strings.Contains(funckey, "/dns/v2/ptrrecords/urls.go.resourceURL") {
 				urlSupportsInUriFile[funckey] = "reverse/floatingips/{region}:{floatingip_id}"
 			}
+		}
+	}
 
-			//对于循环调用的 ，这里简单处理
-			if uri == "" {
-				regSp := regexp.MustCompile(`return\s(\w+)\(`)
-				submatch2 := regSp.FindAllStringSubmatch(funcSrc, 1) //只取第一个
-				if len(submatch2) > 0 {
-					name := submatch2[0][1]
-					//使用被引用的方法的URL
-					urlSupportsInUriFile[funckey] = urlSupportsInUriFile[filePath+"."+name]
-				}
-
-			}
-
-			if uri == "" {
-				log.Println("parse URL failed, method=", funcName, " filePath:", filePath)
-			}
-			//fmt.Println("fff:", funcSrc)
+	// 处理函数调用的情况
+	for key, funcName := range callingFunc {
+		uri := urlSupportsInUriFile[filePath+"."+funcName]
+		urlSupportsInUriFile[key] = uri
+		if uri == "" {
+			log.Printf("[WARN] can not parse the URL function %s/%s in %s\n", key, funcName, filePath)
 		}
 	}
 }
@@ -457,31 +464,37 @@ func parseUriFromUriFile(filePath string) {
 先从map中获取，没有则重新解析文件
 */
 func getUriFromUriFile(filePath string, funcName string, isParsefile bool) string {
-	v, ok := urlSupportsInUriFile[filePath+"."+funcName]
-	if ok {
+	if v, ok := urlSupportsInUriFile[filePath+"."+funcName]; ok {
 		return v
 	}
+
 	if isParsefile {
 		parseUriFromUriFile(filePath)
 		return getUriFromUriFile(filePath, funcName, false)
 	}
+
+	log.Printf("[WARN] failed parsing URL of method %s in file %s\n", funcName, filePath)
 	return ""
 }
 
 func getUriFromRequestFile(sdkFileDir string, funcName string, isParsefile bool) CloudUri {
-	v, ok := urlSupportsInRequestFile[sdkFileDir+"."+funcName]
-	if ok {
+	if v, ok := urlSupportsInRequestFile[sdkFileDir+"."+funcName]; ok {
 		return v
 	}
+
 	if isParsefile {
 		parseUriFromRequestFile(sdkFileDir)
 		return getUriFromRequestFile(sdkFileDir, funcName, false)
 	}
+
+	log.Printf("[WARN] failed parsing cloud URL of method %s in package %s\n", funcName, sdkFileDir)
 	return CloudUri{}
 }
 
 func parseUriFromRequestFile(sdkFileDir string) {
 	set := token.NewFileSet()
+	// most of all files are named requests.go
+	// request.go is only in openstack/elb/v2/certificates package, will normalize it in golansdk
 	requestFileNames := []string{"requests.go", "request.go"}
 	var requestFilePath string
 
@@ -513,6 +526,8 @@ func parseUriFromRequestFile(sdkFileDir string) {
 	urlSupportsInCurrentFile := []string{}
 
 	var uriFilePath string
+	// most of all files are named urls.go
+	// url.go and utils.go are located in some packages, will normalize them in golansdk
 	urlsFileNames := []string{"urls.go", "url.go", "utils.go"}
 	for _, v := range urlsFileNames {
 		if filePathExists(sdkFileDir + v) {
@@ -533,10 +548,10 @@ func parseUriFromRequestFile(sdkFileDir string) {
 
 			funcSrc := string(resourceFilebytes[startIndex:endIndex])
 			funcName := fn.Name.Name
+
 			//判断是否有 client.Post(createURL(client), b)
 			reg1 := regexp.MustCompile(`\.(Head|Get|Post|Put|Patch|Delete|DeleteWithBody|DeleteWithResponse|DeleteWithBodyResp)\((\w*)\(`)
 			//判断是否是client.Put(updateURL, b）
-
 			reg2 := regexp.MustCompile(`\.(Head|Get|Post|Put|Patch|Delete|DeleteWithBody|DeleteWithResponse|DeleteWithBodyResp)\((\w*),`)
 
 			//判断是否是 pagination.NewPager(c, rootURL(c),
@@ -559,10 +574,9 @@ func parseUriFromRequestFile(sdkFileDir string) {
 					//判断
 					//	mapToUrl(urlFunc,urlFilePath)
 					//	println("ososo:", httpClientMethod, urlFunc)
-					log.Println("[DEBUG] parseUriFromRequestFile.currentLine", funcName, urlFunc)
+					log.Println("[DEBUG] parseUriFromRequestFile-regmatch1", funcName, urlFunc)
 					//	fmt.Println("request path:", filePath, "uriFilePath:", uriFilePath)
 					uri := getUriFromUriFile(uriFilePath, urlFunc, true)
-					//	fmt.Println(funcName, uri)
 					cloudUri := new(CloudUri)
 					cloudUri.url = uri
 					cloudUri.httpMethod = mapToStandardHttpMethod(httpMethod)
@@ -574,8 +588,9 @@ func parseUriFromRequestFile(sdkFileDir string) {
 				for i := 0; i < len(submatch2); i++ {
 					httpMethod := submatch2[i][1]
 					urlFunc := submatch2[i][2]
+					log.Println("[DEBUG] parseUriFromRequestFile-regmatch2", funcName, urlFunc)
+
 					regUrLDecl := regexp.MustCompile(fmt.Sprintf(`%s\s*:=\s*(\w*)`, urlFunc))
-					log.Println("[DEBUG] parseUriFromRequestFile.searchUrlDecl.currentfile", funcName, urlFunc)
 					urlDeclsMatch := regUrLDecl.FindAllStringSubmatch(funcSrc, 1)
 					if len(urlDeclsMatch) > 0 {
 						urlFunc = urlDeclsMatch[0][1]
@@ -598,10 +613,9 @@ func parseUriFromRequestFile(sdkFileDir string) {
 					//判断
 					//	mapToUrl(urlFunc,urlFilePath)
 					//	println("ososo:", httpClientMethod, urlFunc)
-					log.Println("[DEBUG] parseUriFromRequestFile.currentLine", funcName, urlFunc)
+					log.Println("[DEBUG] parseUriFromRequestFile-regmatch3", funcName, urlFunc)
 					//	fmt.Println("request path:", filePath, "uriFilePath:", uriFilePath)
 					uri := getUriFromUriFile(uriFilePath, urlFunc, true)
-					//	fmt.Println(funcName, uri)
 					cloudUri := new(CloudUri)
 					cloudUri.url = uri
 					cloudUri.httpMethod = httpMethod
@@ -613,8 +627,9 @@ func parseUriFromRequestFile(sdkFileDir string) {
 				for i := 0; i < len(submatch4); i++ {
 					httpMethod := "get"
 					urlFunc := submatch4[i][1]
+					log.Println("[DEBUG] parseUriFromRequestFile-regmatch4", funcName, urlFunc)
+
 					regUrLDecl := regexp.MustCompile(fmt.Sprintf(`%s\s*:=\s*(\w*)`, urlFunc))
-					log.Println("[DEBUG] parseUriFromRequestFile.searchUrlDecl.currentfile", funcName, urlFunc)
 					urlDeclsMatch := regUrLDecl.FindAllStringSubmatch(funcSrc, 1)
 					if len(urlDeclsMatch) > 0 {
 						urlFunc = urlDeclsMatch[0][1]
