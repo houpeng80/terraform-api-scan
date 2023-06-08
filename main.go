@@ -157,7 +157,7 @@ func searchPackage(subPackage string, publicFuncs, rsNames, dsNames []string, pr
 			// 忽略测试文件和deprecated的资源
 			if strings.LastIndex(filePath, "test.go") > 0 || isDeprecatedFile(filePath) ||
 				isInternalFile(filePath) {
-				log.Println("skip file which is deprecated or testing:", filePath)
+				log.Println("skip file which is deprecated, internal or testing:", filePath)
 				continue
 			}
 
@@ -291,6 +291,7 @@ func isInternalFile(filePath string) bool {
 		"resource_huaweicloud_lts_dashboard",
 		"resource_huaweicloud_lts_struct_template",
 		"resource_huaweicloud_elb_log",
+		"resource_huaweicloud_cce_partition",
 	}
 
 	for _, v := range internalFiles {
