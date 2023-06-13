@@ -275,7 +275,7 @@ func parseClientDecl(clientBeenUsed string, funcSrc string, curResourceFuncDecl 
 		tpStr := regInArgs.FindAllString(funcFirstLineSrc, 1)[0]
 		argsIndex := strings.Count(tpStr, ",") + 1
 		// 遍历方法，找到body体里有调用的
-		clientUsedInInvoke, funcSrcInInvoke, funcInvoke, ok := parseMethodbeenInvoke(curResourceFuncDecl.Name.Name, argsIndex, resourceFileBytes, funcDecls, fset)
+		clientUsedInInvoke, funcSrcInInvoke, funcInvoke, ok := parseMethodbeenInvoke(funcName, argsIndex, resourceFileBytes, funcDecls, fset)
 		if ok {
 			return parseClientDecl(clientUsedInInvoke, funcSrcInInvoke, funcInvoke, resourceFileBytes, funcDecls, fset)
 		}
@@ -327,14 +327,21 @@ func parseMethodbeenInvoke(funcName string, argsIndex int, resourceFileBytes []b
 		//reg := regexp.MustCompile(fmt.Sprintf(`%s\((\w*),`, funcName))
 		allSubMatch := reg.FindAllStringSubmatch(funcSrc, 1)
 		if len(allSubMatch) > 0 {
-
 			argStr := allSubMatch[0][1]
-			fmt.Println("parseMethodbeenInvoke.agrs", argStr, argsIndex)
+			calledFuncName := curResourceFuncDecl.Name.Name
+			fmt.Printf("parseMethodbeenInvoke.agrs: %s call %s(%s) %d\n", calledFuncName, funcName, argStr, argsIndex)
 			args := strings.Split(argStr, ",")
 			if len(args) >= argsIndex {
 				arg := strings.Trim(args[argsIndex-1], " ")
+				arg = strings.Trim(arg, ")")
+				// 解析失败，直接return
+				if strings.Contains(arg, "(") {
+					log.Printf("[WARN] unable to parse the arguments in %s %s\n", calledFuncName, arg)
+					return
+				}
+
 				clientBeenUsed = arg
-				fmt.Println("parseMethodbeenInvoke.agrs2", clientBeenUsed)
+				fmt.Println("parseMethodbeenInvoke.agrs2", calledFuncName, clientBeenUsed)
 				exist = true
 				return
 			}
