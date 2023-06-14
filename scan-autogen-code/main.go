@@ -139,10 +139,14 @@ func convertPath(paths map[string]map[string]model.OperationInfo) map[string]map
 				}
 				rst[apiUrl[1]] = v
 			} else {
-				rst[apiUrl[1]][apiUrl[0]] = model.OperationInfo{
-					Tag:         operation.XrefProduct,
-					OperationId: operation.OperationId,
-					XrefApi:     operation.XrefApi,
+				if op, ok := rst[apiUrl[1]][apiUrl[0]]; ok && strings.Compare(op.OperationId, operation.OperationId) < 1 {
+					continue
+				} else {
+					rst[apiUrl[1]][apiUrl[0]] = model.OperationInfo{
+						Tag:         operation.XrefProduct,
+						OperationId: operation.OperationId,
+						XrefApi:     operation.XrefApi,
+					}
 				}
 			}
 
