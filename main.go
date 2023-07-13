@@ -256,7 +256,6 @@ func isDeprecatedFile(filePath string) bool {
 		"resource_huaweicloud_fw_firewall_group_v2",
 		"resource_huaweicloud_fw_policy_v2",
 		"resource_huaweicloud_fw_rule_v2",
-		"resource_huaweicloud_ges_graph_v1",
 		"resource_huaweicloud_networking_floatingip_v2",
 		"resource_huaweicloud_networking_floatingip_associate_v2",
 		"resource_huaweicloud_networking_network_v2",
@@ -290,7 +289,6 @@ func isInternalFile(filePath string) bool {
 		"resource_huaweicloud_lts_access_rule",
 		"resource_huaweicloud_lts_dashboard",
 		"resource_huaweicloud_lts_struct_template",
-		"resource_huaweicloud_elb_log",
 		"resource_huaweicloud_cce_partition",
 	}
 
@@ -526,6 +524,7 @@ func hasEIP(uri string) bool {
 
 var specialResourceTypes = map[string]string{
 	"COMPUTE":   "ECS",
+	"IMAGES":    "IMS",
 	"ANTIDDOS":  "Anti-DDoS",
 	"LB":        "ELB",
 	"MAPREDUCE": "MRS",
