@@ -8,7 +8,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -80,7 +79,7 @@ func main() {
 	}
 
 	// 将固定的文件替换到指定目录并替换版本号
-	if err := copy(outputDir, version); err != nil {
+	if err := copyStaticFile(outputDir, version); err != nil {
 		fmt.Printf("ERROR: copy static files failed: %s\n", err)
 	}
 
@@ -88,7 +87,7 @@ func main() {
 	copyFromFile(outputDir, "resource_huaweicloud_gaussdb_cassandra_instance.yaml", "resource_huaweicloud_gaussdb_influx_instance.yaml")
 }
 
-func copy(outputDir, version string) error {
+func copyStaticFile(outputDir, version string) error {
 	return filepath.Walk("../../config/static/", func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("scan path %s failed: %s\n", path, err)
@@ -100,7 +99,7 @@ func copy(outputDir, version string) error {
 			return nil
 		}
 
-		rawBytes, err := ioutil.ReadFile(path)
+		rawBytes, err := os.ReadFile(path)
 		if err != nil {
 			fmt.Println(err)
 			return err
@@ -110,14 +109,14 @@ func copy(outputDir, version string) error {
 
 		fmt.Printf("copy file %s into %s\n", path, outputDir)
 		outputFile := outputDir + fInfo.Name()
-		return ioutil.WriteFile(outputFile, input, 0644)
+		return os.WriteFile(outputFile, input, 0644)
 	})
 }
 
 func copyFromFile(dir, source, target string) error {
 	fmt.Printf("copy file %s as %s\n", source, target)
 	sourcePath := filepath.Join(dir, source)
-	rawBytes, err := ioutil.ReadFile(sourcePath)
+	rawBytes, err := os.ReadFile(sourcePath)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -128,7 +127,7 @@ func copyFromFile(dir, source, target string) error {
 	input := bytes.Replace(rawBytes, []byte(sourceName), []byte(targetName), 1)
 
 	targetPath := filepath.Join(dir, target)
-	return ioutil.WriteFile(targetPath, input, 0644)
+	return os.WriteFile(targetPath, input, 0644)
 }
 
 func searchPackage(subPackage string, publicFuncs, rsNames, dsNames []string, provider string) {
@@ -195,7 +194,7 @@ func searchPackage(subPackage string, publicFuncs, rsNames, dsNames []string, pr
 
 				// 保存描述文件
 				outputFile := outputDir + strings.Replace(rsName, "huaweicloud", provider, -1) + ".yaml"
-				err := ioutil.WriteFile(outputFile, []byte(yarmStr), 0664)
+				err := os.WriteFile(outputFile, []byte(yarmStr), 0664)
 				if err == nil {
 					log.Println("写入成功", outputFile)
 				}
@@ -303,7 +302,7 @@ func isInternalFile(filePath string) bool {
 func isAutoGenetatedFile(filePath string) bool {
 	var offset int = 200
 
-	fileBytes, err := ioutil.ReadFile(filePath)
+	fileBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -591,7 +590,7 @@ func isSameWithPre(cloudUri []CloudUri, curIndex int) bool {
 }
 
 func parseSchemaInfo(schemaJsonPath, provider string) (rsNames []string, dsNames []string, err error) {
-	input, err := ioutil.ReadFile(schemaJsonPath)
+	input, err := os.ReadFile(schemaJsonPath)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -637,8 +636,8 @@ func parseSchemaInfo(schemaJsonPath, provider string) (rsNames []string, dsNames
 		rsNames = append(rsNames, strings.Replace("huaweicloud_rds_configuration", "huaweicloud", provider, -1))
 	}
 
-	ioutil.WriteFile("resource_name.txt", []byte(strings.Join(rsNames, "\n")), 0644)
-	ioutil.WriteFile("data_source_name.txt", []byte(strings.Join(dsNames, "\n")), 0644)
+	os.WriteFile("resource_name.txt", []byte(strings.Join(rsNames, "\n")), 0644)
+	os.WriteFile("data_source_name.txt", []byte(strings.Join(dsNames, "\n")), 0644)
 	return
 }
 
