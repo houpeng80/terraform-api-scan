@@ -170,7 +170,6 @@ func findAllUriFromResourceFunc(curResourceFuncDecl *ast.FuncDecl, sdkPackages m
 			} else {
 				log.Println("parseUriFromSdk.return empty", sdkFunctionName, sdkFilePath)
 			}
-
 		}
 		// TODO: client 直接定义在方法里
 	}
@@ -253,6 +252,12 @@ func parseUriFromSdk(sdkFilePath string, sdkFunctionName string) (r CloudUri) {
 
 	cUri := getUriFromRequestFile(sdkFileDir, sdkFunctionName, true)
 	fmt.Println("mmmm", cUri.url, cUri.httpMethod, sdkFunctionName, sdkFileDir)
+
+	// 去除URL中的query参数
+	if lastIndex := strings.Index(cUri.url, "?"); lastIndex > 0 {
+		cUri.url = cUri.url[:lastIndex]
+	}
+
 	r.url = cUri.url
 	r.httpMethod = cUri.httpMethod
 	r.operationId = sdkFunctionName
