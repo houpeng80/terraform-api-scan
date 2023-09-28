@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -67,7 +66,7 @@ func GetAllFiles(dirPth string, suffix string) (files []string) {
 }
 
 func convert(filePath string, outputDir string, rsNames, dsNames []string) {
-	inputContent, err := ioutil.ReadFile(filePath)
+	inputContent, err := os.ReadFile(filePath)
 	if err != nil {
 		log.Printf("error: %v", err)
 	}
@@ -96,7 +95,7 @@ func convert(filePath string, outputDir string, rsNames, dsNames []string) {
 	}
 
 	sep := string(os.PathSeparator)
-	err = ioutil.WriteFile(outputDir+sep+fileName, outputContent, 0644)
+	err = os.WriteFile(outputDir+sep+fileName, outputContent, 0644)
 	if err != nil {
 		log.Printf("error: %v", err)
 	}
@@ -112,7 +111,11 @@ func convertApi(inputApi model.Api, resourceName string) model.Api {
 	outputApi.Servers = inputApi.Servers
 	outputApi.Host = "myhuaweicloud.com"
 	outputApi.Paths = convertPath(inputApi.Paths)
-	outputApi.Tags = []model.Tag{{Name: inputApi.Info.XrefProduct}}
+	outputApi.Tags = []model.Tag{
+		{
+			Name: normalizeProductInfo(inputApi.Info.XrefProduct),
+		},
+	}
 	return outputApi
 }
 
@@ -133,7 +136,7 @@ func convertPath(paths map[string]map[string]model.OperationInfo) map[string]map
 			if _, ok := rst[apiUrl[1]]; !ok {
 				v := make(map[string]model.OperationInfo)
 				v[apiUrl[0]] = model.OperationInfo{
-					Tag:         operation.XrefProduct,
+					Tag:         normalizeProductInfo(operation.XrefProduct),
 					OperationId: operation.OperationId,
 					XrefApi:     operation.XrefApi,
 				}
@@ -141,22 +144,21 @@ func convertPath(paths map[string]map[string]model.OperationInfo) map[string]map
 			} else {
 				if op, ok := rst[apiUrl[1]][apiUrl[0]]; ok && strings.Compare(op.OperationId, operation.OperationId) < 1 {
 					continue
-				} else {
-					rst[apiUrl[1]][apiUrl[0]] = model.OperationInfo{
-						Tag:         operation.XrefProduct,
-						OperationId: operation.OperationId,
-						XrefApi:     operation.XrefApi,
-					}
+				}
+
+				rst[apiUrl[1]][apiUrl[0]] = model.OperationInfo{
+					Tag:         normalizeProductInfo(operation.XrefProduct),
+					OperationId: operation.OperationId,
+					XrefApi:     operation.XrefApi,
 				}
 			}
-
 		}
 	}
 	return rst
 }
 
 func parseSchemaInfo(schemaJsonPath, provider string) (rsNames []string, dsNames []string, err error) {
-	input, err := ioutil.ReadFile(schemaJsonPath)
+	input, err := os.ReadFile(schemaJsonPath)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -189,7 +191,6 @@ func parseSchemaInfo(schemaJsonPath, provider string) (rsNames []string, dsNames
 				dsNames = append(dsNames, name)
 			}
 		}
-
 	}
 
 	return
@@ -230,4 +231,12 @@ func isExportResource(resourceFileName, provider string, rsNames []string, dsNam
 		}
 	}
 	return "", false
+}
+
+func normalizeProductInfo(product string) string {
+	// update RMS to Config
+	if product == "RMS" {
+		return "Config"
+	}
+	return product
 }
