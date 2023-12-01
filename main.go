@@ -289,6 +289,7 @@ func isInternalFile(filePath string) bool {
 		"resource_huaweicloud_lts_dashboard",
 		"resource_huaweicloud_lts_struct_template",
 		"resource_huaweicloud_cce_partition",
+		"resource_huaweicloud_vpc_bandwidth_v1", // hcso used only
 	}
 
 	for _, v := range internalFiles {
