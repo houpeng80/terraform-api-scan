@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
-	"gopkg.in/yaml.v2"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/jmespath/go-jmespath"
 )
