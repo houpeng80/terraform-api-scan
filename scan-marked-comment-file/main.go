@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
-	"gopkg.in/yaml.v2"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"gopkg.in/yaml.v3"
+
+	"github.com/huaweicloud/terraform-provider-huaweicloud/huaweicloud/config"
 	"github.com/jmespath/go-jmespath"
 )
 
@@ -35,7 +37,7 @@ func init() {
 
 }
 
-type Config struct {
+type ApiConfig struct {
 	Info    Info                                    `yaml:"info"`
 	Schemes []string                                `yaml:"schemes"`
 	Host    string                                  `yaml:"host"`
@@ -183,7 +185,7 @@ func dealFile(path string, rsNames, dsNames []string) {
 }
 
 func buildYaml(resourceName, product string, paths map[string]map[string]map[string]string) {
-	cfg := Config{
+	cfg := ApiConfig{
 		Info:    Info{Title: resourceName, Version: version},
 		Schemes: []string{"https"},
 		Host:    "huaweicloud.com",
