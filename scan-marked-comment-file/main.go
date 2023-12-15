@@ -98,7 +98,7 @@ func dealFile(path string, rsNames, dsNames []string) {
 		log.Printf("package name: %s, file count: %d\n", packageName, len(pack.Files))
 		for filePath, _ := range pack.Files {
 			// 获得文件名并去除版本号
-			resourceName := filePath[strings.LastIndex(filePath, "\\")+1 : len(filePath)-3]
+			resourceName := filePath[strings.LastIndex(filePath, "/")+1 : len(filePath)-3]
 			re, _ := regexp.Compile(`_v\d+$`)
 			resourceName = re.ReplaceAllString(resourceName, "")
 
@@ -196,7 +196,8 @@ func buildYaml(resourceName, product string, paths map[string]map[string]map[str
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err = os.WriteFile(fmt.Sprintf("%s%s.yaml", outputDir, resourceName), data, 0664); err != nil {
+
+	if err = os.WriteFile(fmt.Sprintf("%s/%s.yaml", outputDir, resourceName), data, 0664); err != nil {
 		log.Println("[WARN] write error", resourceName)
 		return
 	}
