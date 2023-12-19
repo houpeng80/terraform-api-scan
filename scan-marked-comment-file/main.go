@@ -26,6 +26,19 @@ var (
 	providerSchemaPath string
 	provider           string
 )
+var (
+	// 有些命名不是完全对应，需要做一个映射
+	productsMap = map[string]string{
+		"gaussdb_redis":     "geminidb",
+		"gaussdb_nosql":     "geminidb",
+		"gaussdb_cassandra": "geminidb",
+		"identity_provider": "iam_no_version",
+		"as":                "autoscaling",
+		"sfs_turbo":         "sfs-turbo",
+		"networking":        "networkv2",
+		"antiddos":          "anti-ddos",
+	}
+)
 
 func init() {
 	flag.StringVar(&basePath, "basePath", "../../terraform-provider-huaweicloud/", "base Path")
@@ -164,24 +177,41 @@ func dealFile(path string, rsNames, dsNames []string) {
 					}
 				}
 			}
-			splits := strings.Split(resourceName, "_")
-			var service string
-			if strings.HasPrefix(resourceName, "resource_") {
-				service = splits[2]
-			} else {
-				service = splits[3]
-			}
-			serviceCatalog := config.GetServiceCatalog(service)
-			if serviceCatalog == nil {
-				log.Printf("[WARN] the resource (%s) service(%s) not found, so skip.\n", resourceName, service)
+			product := getProduct(resourceName)
+			if product == "" {
+				log.Printf("[WARN] the resource (%s) service not found, so skip.\n", resourceName)
 				continue
 			}
-			product := serviceCatalog.Product
 			if isBuildYaml {
 				buildYaml(resourceName, product, usedApis)
 			}
 		}
 	}
+}
+
+func getProduct(resourceName string) string {
+	splits := strings.Split(resourceName, "_")
+	var service string
+	var serviceExtra string
+	if strings.HasPrefix(resourceName, "resource_") {
+		service = splits[2]
+		serviceExtra = splits[3]
+	} else {
+		service = splits[3]
+		serviceExtra = splits[4]
+	}
+	if name, ok := productsMap[fmt.Sprintf("%s_%s", service, serviceExtra)]; ok {
+		// 有些资源命名和product名不是完全对应的，甚至可能是由两部分组成，如：sfs-turbo
+		service = name
+	} else if name, ok = productsMap[service]; ok {
+		// 有些命名比较特殊，需要做一个转换，如：antiddos、as等
+		service = name
+	}
+	serviceCatalog := config.GetServiceCatalog(service)
+	if serviceCatalog == nil {
+		return ""
+	}
+	return serviceCatalog.Product
 }
 
 func buildYaml(resourceName, product string, paths map[string]map[string]map[string]string) {
