@@ -14,7 +14,6 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/huaweicloud/terraform-provider-huaweicloud/huaweicloud/config"
 	"github.com/jmespath/go-jmespath"
 )
 
@@ -25,19 +24,6 @@ var (
 	version            string
 	providerSchemaPath string
 	provider           string
-)
-var (
-	// 有些命名不是完全对应，需要做一个映射
-	productsMap = map[string]string{
-		"gaussdb_redis":     "geminidb",
-		"gaussdb_nosql":     "geminidb",
-		"gaussdb_cassandra": "geminidb",
-		"identity_provider": "iam_no_version",
-		"as":                "autoscaling",
-		"sfs_turbo":         "sfs-turbo",
-		"networking":        "networkv2",
-		"antiddos":          "anti-ddos",
-	}
 )
 
 func init() {
@@ -134,7 +120,8 @@ func dealFile(path string, rsNames, dsNames []string) {
 				continue
 			}
 			isBuildYaml := true
-			for _, apiMatch := range allApiMatch {
+			var product string
+			for i, apiMatch := range allApiMatch {
 				str := strings.TrimSpace(apiMatch[2])
 				standardStr := ""
 				var resourceType, url, requestMethod string
@@ -155,6 +142,9 @@ func dealFile(path string, rsNames, dsNames []string) {
 				resourceType = parts[0]
 				requestMethod = parts[1]
 				url = parts[2]
+				if i == 0 {
+					product = resourceType
+				}
 				methodMap, ok := usedApis[url]
 				if !ok {
 					methodMap = make(map[string]map[string]string)
@@ -177,7 +167,6 @@ func dealFile(path string, rsNames, dsNames []string) {
 					}
 				}
 			}
-			product := getProduct(resourceName)
 			if product == "" {
 				log.Printf("[WARN] the resource (%s) service not found, so skip.\n", resourceName)
 				continue
@@ -187,31 +176,6 @@ func dealFile(path string, rsNames, dsNames []string) {
 			}
 		}
 	}
-}
-
-func getProduct(resourceName string) string {
-	splits := strings.Split(resourceName, "_")
-	var service string
-	var serviceExtra string
-	if strings.HasPrefix(resourceName, "resource_") {
-		service = splits[2]
-		serviceExtra = splits[3]
-	} else {
-		service = splits[3]
-		serviceExtra = splits[4]
-	}
-	if name, ok := productsMap[fmt.Sprintf("%s_%s", service, serviceExtra)]; ok {
-		// 有些资源命名和product名不是完全对应的，甚至可能是由两部分组成，如：sfs-turbo
-		service = name
-	} else if name, ok = productsMap[service]; ok {
-		// 有些命名比较特殊，需要做一个转换，如：antiddos、as等
-		service = name
-	}
-	serviceCatalog := config.GetServiceCatalog(service)
-	if serviceCatalog == nil {
-		return ""
-	}
-	return serviceCatalog.Product
 }
 
 func buildYaml(resourceName, product string, paths map[string]map[string]map[string]string) {
