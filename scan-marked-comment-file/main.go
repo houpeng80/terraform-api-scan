@@ -113,8 +113,8 @@ func dealFile(path string, rsNames, dsNames []string) {
 
 			// url:{method:{tag:resourcetype}}}
 			usedApis := make(map[string]map[string]map[string]string, 0)
-			// 匹配所有的API注释信息：eg：// API: DMS GET /v2/{project_id}/instances/{instance_id}
-			apiReg := regexp.MustCompile(fmt.Sprintf("(// API:)\\s*(.*)"))
+			// 匹配所有的API注释信息：eg：// @API DMS GET /v2/{project_id}/instances/{instance_id}
+			apiReg := regexp.MustCompile(fmt.Sprintf("(// @API)\\s*(.*)"))
 			allApiMatch := apiReg.FindAllStringSubmatch(fileStr, -1)
 			if len(allApiMatch) == 0 {
 				continue
