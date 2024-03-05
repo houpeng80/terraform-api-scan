@@ -15,6 +15,9 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/jmespath/go-jmespath"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/huaweicloud/terraform-provider-huaweicloud/huaweicloud"
 )
 
 var (
@@ -63,11 +66,13 @@ func main() {
 		os.Exit(-1)
 	}
 
-	dealFiles(rsNames, dsNames)
+	p := huaweicloud.Provider()
+
+	dealFiles(rsNames, dsNames, p)
 }
 
-func dealFiles(rsNames, dsNames []string) {
-	subPackagePath := basePath + provider + "/"
+func dealFiles(rsNames, dsNames []string, p *schema.Provider) {
+	subPackagePath := basePath + provider + "/services/identitycenter"
 	err := filepath.Walk(subPackagePath, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("scan path %s failed: %s\n", path, err)
@@ -75,7 +80,7 @@ func dealFiles(rsNames, dsNames []string) {
 		}
 
 		if fInfo.IsDir() && !isSkipDirectory(path) {
-			dealFile(path, rsNames, dsNames)
+			dealFile(path, rsNames, dsNames, p)
 		}
 
 		return nil
@@ -85,7 +90,7 @@ func dealFiles(rsNames, dsNames []string) {
 	}
 }
 
-func dealFile(path string, rsNames, dsNames []string) {
+func dealFile(path string, rsNames, dsNames []string, p *schema.Provider) {
 	fSet := token.NewFileSet()
 	packs, err := parser.ParseDir(fSet, path, nil, 0)
 	if err != nil {
@@ -97,7 +102,7 @@ func dealFile(path string, rsNames, dsNames []string) {
 		log.Printf("package name: %s, file count: %d\n", packageName, len(pack.Files))
 		for filePath, _ := range pack.Files {
 			// 获得文件名并去除版本号
-			resourceName := filePath[strings.LastIndex(filePath, "/")+1 : len(filePath)-3]
+			resourceName := filePath[strings.LastIndex(filePath, "\\")+1 : len(filePath)-3]
 			re, _ := regexp.Compile(`_v\d+$`)
 			resourceName = re.ReplaceAllString(resourceName, "")
 
@@ -105,10 +110,15 @@ func dealFile(path string, rsNames, dsNames []string) {
 				continue
 			}
 
+			if isInternalResource(resourceName, p) {
+				continue
+			}
+
 			resourceFileBytes, err := os.ReadFile(filePath)
 			if err != nil {
 				log.Fatal(err)
 			}
+
 			fileStr := string(resourceFileBytes)
 
 			// url:{method:{tag:resourcetype}}}
@@ -268,6 +278,35 @@ func isExportResource(resourceName string, rsNames, dsNames []string) bool {
 		for _, v := range dsNames {
 			if v == simpleFilename {
 				return true
+			}
+		}
+	}
+	return false
+}
+
+func isInternalResource(resourceName string, p *schema.Provider) bool {
+	if strings.HasPrefix(resourceName, "resource_") {
+		resourceName = strings.Replace(resourceName, "huaweicloud", provider, -1)
+		simpleFilename := strings.TrimPrefix(resourceName, "resource_")
+		for k, v := range p.ResourcesMap {
+			if k == simpleFilename {
+				if v.Description == "schema: Internal" {
+					return true
+				}
+				return false
+			}
+		}
+	}
+
+	if strings.HasPrefix(resourceName, "data_source_") {
+		resourceName = strings.Replace(resourceName, "huaweicloud", provider, -1)
+		simpleFilename := strings.TrimPrefix(resourceName, "data_source_")
+		for k, v := range p.DataSourcesMap {
+			if k == simpleFilename {
+				if v.Description == "schema: Internal" {
+					return true
+				}
+				return false
 			}
 		}
 	}
